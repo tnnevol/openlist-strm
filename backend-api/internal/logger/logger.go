@@ -2,6 +2,7 @@ package logger
 
 import (
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -22,7 +23,10 @@ func Init() {
 	if _, err := os.Stat("logs"); os.IsNotExist(err) {
 		os.Mkdir("logs", 0755)
 	}
-	logFile, _ := os.OpenFile("logs/app.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	// 按天分割日志文件，文件名为 logs/yyyy-MM-dd.log
+	logFileName := time.Now().Format("2006-01-02") + ".log"
+	logFilePath := "logs/" + logFileName
+	logFile, _ := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	encoder := zapcore.NewConsoleEncoder(config)
 	core := zapcore.NewCore(encoder, zapcore.AddSync(logFile), zap.InfoLevel)
 	Logger = zap.New(core, zap.AddCaller())

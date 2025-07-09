@@ -2,8 +2,11 @@ package middleware
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // 统一错误码定义
@@ -21,6 +24,50 @@ type Response struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+}
+
+var WhiteList = map[string]bool{
+	"/user/send-code": true,
+	"/user/register": true,
+	"/user/login": true,
+	"/user/forgot-password/send-code": true,
+	"/user/forgot-password/reset": true,
+	"/swagger/": true,
+}
+
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path := c.Request.URL.Path
+		for prefix := range WhiteList {
+			if strings.HasPrefix(path, prefix) {
+				c.Next()
+				return
+			}
+		}
+		// 解析token
+		tokenStr := c.GetHeader("Authorization")
+		if tokenStr == "" {
+			Unauthorized(c, "未登录或token缺失")
+			c.Abort()
+			return
+		}
+		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+		jwtKey := []byte(os.Getenv("JWT_SECRET"))
+		if len(jwtKey) == 0 {
+			jwtKey = []byte("secret")
+		}
+		claims := jwt.MapClaims{}
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+		if err != nil || !token.Valid {
+			Unauthorized(c, "token无效或已过期")
+			c.Abort()
+			return
+		}
+		c.Set("claims", claims)
+		c.Next()
+	}
 }
 
 // Success 成功响应

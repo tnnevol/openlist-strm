@@ -13,8 +13,10 @@ func AutoMigrateAll(db *sql.DB) error {
 
 // 单独拆分每个表的迁移
 func AutoMigrateUser(db *sql.DB) error {
+	// 创建表（如果不存在）
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS user (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE,
 		email TEXT UNIQUE,
 		password_hash TEXT,
 		is_active INTEGER,
@@ -24,5 +26,15 @@ func AutoMigrateUser(db *sql.DB) error {
 		locked_until DATETIME,
 		created_at DATETIME
 	)`)
-	return err
+	if err != nil {
+		return err
+	}
+	
+	// 检查username字段是否存在，如果不存在则添加
+	_, err = db.Exec(`ALTER TABLE user ADD COLUMN username TEXT UNIQUE`)
+	if err != nil {
+		// 字段已存在，忽略错误
+	}
+	
+	return nil
 } 

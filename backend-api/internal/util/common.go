@@ -14,6 +14,12 @@ func IsValidEmail(email string) bool {
 	return re.MatchString(email)
 }
 
+func IsValidUsername(username string) bool {
+	// 用户名至少3个字符，最多20个字符，只能包含字母、数字、下划线
+	re := regexp.MustCompile(`^[a-zA-Z0-9_]{3,20}$`)
+	return re.MatchString(username)
+}
+
 func IsStrongPassword(pw string) bool {
 	if len(pw) < 8 {
 		return false
