@@ -10,7 +10,7 @@ packages:
   - packages/business/*
   - apps/*
   - scripts/*
-  - backend-service
+  - backend-api
   - docs
   - playground
 

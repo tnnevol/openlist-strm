@@ -22,12 +22,12 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   appName: '',
-  copyright: true,
+  copyright: false,
   logo: '',
   pageDescription: '',
   pageTitle: '',
   sloganImage: '',
-  toolbar: true,
+  toolbar: false,
   toolbarList: () => ['color', 'language', 'layout', 'theme'],
   clickLogo: () => {},
 });

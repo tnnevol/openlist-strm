@@ -26,7 +26,7 @@ const defaultPreferences: Preferences = {
     layout: 'sidebar-nav',
     locale: 'zh-CN',
     loginExpiredMode: 'page',
-    name: 'Vben Admin',
+    name: 'OpenList Strm',
     preferencesButtonPosition: 'auto',
     watermark: false,
     zIndex: 200,

@@ -9,11 +9,6 @@
     "directory": "playground"
   },
   "license": "MIT",
-  "author": {
-    "name": "vben",
-    "email": "ann.vben@gmail.com",
-    "url": "https://github.com/anncwb"
-  },
   "type": "module",
   "scripts": {
     "build": "pnpm vite build --mode production",
