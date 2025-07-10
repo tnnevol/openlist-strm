@@ -42,7 +42,7 @@ defineOptions({
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   loginPath: '/auth/login',
-  submitButtonText: '',
+  submitButtonText: '重置密码',
   subTitle: '',
   title: '',
 });

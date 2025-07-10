@@ -5,16 +5,16 @@ interface UserInfo extends BasicUserInfo {
   /**
    * 用户描述
    */
-  desc: string;
+  desc?: string;
   /**
    * 首页地址
    */
-  homePath: string;
+  homePath?: string;
 
   /**
    * accessToken
    */
-  token: string;
+  accessToken?: string;
 }
 
 export type { UserInfo };

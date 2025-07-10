@@ -64,7 +64,7 @@ const coreRoutes: RouteRecordRaw[] = [
           title: $t('page.auth.codeLogin'),
         },
       },
-      {
+      /*       {
         name: 'QrCodeLogin',
         path: 'qrcode-login',
         component: () =>
@@ -72,7 +72,7 @@ const coreRoutes: RouteRecordRaw[] = [
         meta: {
           title: $t('page.auth.qrcodeLogin'),
         },
-      },
+      }, */
       {
         name: 'ForgetPassword',
         path: 'forget-password',

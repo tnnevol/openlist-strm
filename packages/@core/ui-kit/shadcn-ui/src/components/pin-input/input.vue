@@ -94,7 +94,7 @@ const id = useId();
     class="flex w-full justify-between"
     otp
     placeholder="○"
-    type="number"
+    type="text"
     @complete="handleComplete"
   >
     <div class="relative flex w-full">
