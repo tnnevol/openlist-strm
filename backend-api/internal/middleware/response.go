@@ -38,12 +38,19 @@ var WhiteList = map[string]bool{
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
-		for prefix := range WhiteList {
-			if strings.HasPrefix(path, prefix) {
-				c.Next()
-				return
-			}
+		
+		// 检查是否在白名单中（精确匹配）
+		if WhiteList[path] {
+			c.Next()
+			return
 		}
+		
+		// 检查swagger路径（前缀匹配）
+		if strings.HasPrefix(path, "/swagger/") {
+			c.Next()
+			return
+		}
+		
 		// 解析token
 		tokenStr := c.GetHeader("Authorization")
 		if tokenStr == "" {
