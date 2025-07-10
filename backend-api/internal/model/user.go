@@ -19,13 +19,14 @@ type User struct {
 	FailedLoginCount int
 	LockedUntil      time.Time
 	CreatedAt        time.Time
+	TokenInvalidBefore sql.NullTime // 新增字段
 }
 
 func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 	var u User
 	var lockedUntil sql.NullTime
-	err := db.QueryRow("SELECT id, email, password_hash, is_active, code, code_expire_at, failed_login_count, locked_until, created_at, username FROM user WHERE email = ?", email).
-		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsActive, &u.Code, &u.CodeExpireAt, &u.FailedLoginCount, &lockedUntil, &u.CreatedAt, &u.Username)
+	err := db.QueryRow("SELECT id, email, password_hash, is_active, code, code_expire_at, failed_login_count, locked_until, created_at, username, token_invalid_before FROM user WHERE email = ?", email).
+		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsActive, &u.Code, &u.CodeExpireAt, &u.FailedLoginCount, &lockedUntil, &u.CreatedAt, &u.Username, &u.TokenInvalidBefore)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +41,8 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	var u User
 	var lockedUntil sql.NullTime
-	err := db.QueryRow("SELECT id, email, password_hash, is_active, code, code_expire_at, failed_login_count, locked_until, created_at, username FROM user WHERE username = ?", username).
-		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsActive, &u.Code, &u.CodeExpireAt, &u.FailedLoginCount, &lockedUntil, &u.CreatedAt, &u.Username)
+	err := db.QueryRow("SELECT id, email, password_hash, is_active, code, code_expire_at, failed_login_count, locked_until, created_at, username, token_invalid_before FROM user WHERE username = ?", username).
+		Scan(&u.ID, &u.Email, &u.PasswordHash, &u.IsActive, &u.Code, &u.CodeExpireAt, &u.FailedLoginCount, &lockedUntil, &u.CreatedAt, &u.Username, &u.TokenInvalidBefore)
 	if err != nil {
 		return nil, err
 	}
@@ -138,4 +139,10 @@ func GetActiveUserByCode(db *sql.DB, code string) (*User, error) {
 		u.LockedUntil = time.Time{}
 	}
 	return &u, nil
+}
+
+// UpdateTokenInvalidBefore 更新token_invalid_before字段
+func UpdateTokenInvalidBefore(db *sql.DB, userID int, t time.Time) error {
+	_, err := db.Exec("UPDATE user SET token_invalid_before = ? WHERE id = ?", t, userID)
+	return err
 }

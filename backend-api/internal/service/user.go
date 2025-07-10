@@ -146,11 +146,13 @@ func LoginUser(db *sql.DB, username, password string) (string, error) {
 		return "", err
 	}
 	model.ResetLoginFail(db, u.ID)
+	now := time.Now().Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":  u.ID,
 		"username": u.Username.String,
 		"email":    u.Email.String,
 		"exp":      time.Now().Add(31 * 24 * time.Hour).Unix(),
+		"iat":      now,
 	})
 	jwtKey := []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtKey) == 0 {
@@ -213,7 +215,17 @@ func ForgotPasswordReset(db *sql.DB, email, code, newPassword string) error {
 		return err
 	}
 	logger.Info("[ForgotPasswordReset] reset password", zap.Int("user_id", user.ID))
-	return model.ActivateUserWithPassword(db, user.ID, string(hash))
+	err = model.ActivateUserWithPassword(db, user.ID, string(hash))
+	if err != nil {
+		return err
+	}
+	// 新增：重置token_invalid_before
+	err = model.UpdateTokenInvalidBefore(db, user.ID, time.Now())
+	if err != nil {
+		logger.Error("[ForgotPasswordReset] UpdateTokenInvalidBefore error", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 // GetUserBaseInfo 获取用户基础信息（不含密码、验证码等敏感字段）
@@ -229,4 +241,14 @@ func GetUserBaseInfo(db *sql.DB, username string) (map[string]interface{}, error
 		"isActive": u.IsActive,
 		"createdAt": u.CreatedAt,
 	}, nil
+}
+
+// GetDB 返回全局数据库连接
+func GetDB() (*sql.DB, error) {
+	return model.InitDB()
+}
+
+// GetUserByUsername 供中间件调用
+func GetUserByUsername(db *sql.DB, username string) (*model.User, error) {
+	return model.GetUserByUsername(db, username)
 }

@@ -40,36 +40,41 @@ var WhiteList = map[string]bool{
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
-		
+
 		// 检查是否在白名单中（精确匹配）
 		if WhiteList[path] {
+			// 新增日志
+			println("[AuthMiddleware] 路径", path, "在白名单，直接放行")
 			c.Next()
 			return
 		}
-		
+
 		// 检查swagger路径（前缀匹配）
 		if strings.HasPrefix(path, "/swagger/") {
+			println("[AuthMiddleware] swagger路径放行")
 			c.Next()
 			return
 		}
-		
+
 		// 解析token
 		tokenStr := c.GetHeader("Authorization")
 		if tokenStr == "" {
+			println("[AuthMiddleware] 未获取到token，拒绝")
 			Unauthorized(c, "未登录或token缺失")
 			c.Abort()
 			return
 		}
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-		
+
 		// 检查token是否在黑名单中
 		blacklist := service.GetTokenBlacklist()
 		if blacklist.IsBlacklisted(tokenStr) {
+			println("[AuthMiddleware] token在黑名单，拒绝")
 			Unauthorized(c, "token已失效，请重新登录")
 			c.Abort()
 			return
 		}
-		
+
 		jwtKey := []byte(os.Getenv("JWT_SECRET"))
 		if len(jwtKey) == 0 {
 			jwtKey = []byte("secret")
@@ -79,20 +84,63 @@ func AuthMiddleware() gin.HandlerFunc {
 			return jwtKey, nil
 		})
 		if err != nil || !token.Valid {
+			println("[AuthMiddleware] token解析失败或无效，拒绝", err)
 			Unauthorized(c, "token无效或已过期")
 			c.Abort()
 			return
 		}
-		
+
 		// 检查token是否已过期
 		if exp, ok := claims["exp"].(float64); ok {
 			if time.Now().Unix() > int64(exp) {
+				println("[AuthMiddleware] token已过期，拒绝")
 				Unauthorized(c, "token已过期")
 				c.Abort()
 				return
 			}
 		}
-		
+
+		// 新增：校验token_invalid_before
+		if iat, ok := claims["iat"].(float64); ok {
+			// 获取用户名
+			var username string
+			if v, ok := claims["username"]; ok {
+				switch vv := v.(type) {
+				case string:
+					username = vv
+				case []byte:
+					username = string(vv)
+				default:
+					username = ""
+				}
+			}
+			if username != "" {
+				db, err := service.GetDB()
+				if err == nil {
+					user, err := service.GetUserByUsername(db, username)
+					println("[AuthMiddleware] 校验token_invalid_before username=", username, "iat=", int64(iat), "token_invalid_before=", user.TokenInvalidBefore.Time.Unix(), "valid=", user.TokenInvalidBefore.Valid, "查找err=", err)
+					if err != nil {
+						println("[AuthMiddleware] 查找用户失败，拒绝")
+						Unauthorized(c, "token已失效，请重新登录")
+						c.Abort()
+						return
+					}
+					if !user.TokenInvalidBefore.Valid {
+						println("[AuthMiddleware] token_invalid_before无效，拒绝")
+						Unauthorized(c, "token已失效，请重新登录")
+						c.Abort()
+						return
+					}
+					if int64(iat) < user.TokenInvalidBefore.Time.Unix() {
+						println("[AuthMiddleware] token签发时间早于token_invalid_before，拒绝")
+						Unauthorized(c, "token已失效，请重新登录")
+						c.Abort()
+						return
+					}
+				}
+			}
+		}
+
 		c.Set("claims", claims)
 		c.Next()
 	}

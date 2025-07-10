@@ -363,8 +363,32 @@ func ForgotPasswordReset(db *sql.DB) gin.HandlerFunc {
 			}
 			return
 		}
-		
-		logger.Info("[API] /user/forgot-password/reset 重置成功")
+
+		// 新增：将当前token加入黑名单
+		tokenStr := c.GetHeader("Authorization")
+		if tokenStr != "" {
+			tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+			claims, ok := c.Get("claims")
+			var expireTime time.Time
+			if ok {
+				switch m := claims.(type) {
+				case map[string]interface{}:
+					if v, ok := m["exp"].(float64); ok {
+						expireTime = time.Unix(int64(v), 0)
+					}
+				case jwt.MapClaims:
+					if v, ok := m["exp"].(float64); ok {
+						expireTime = time.Unix(int64(v), 0)
+					}
+				}
+			}
+			if !expireTime.IsZero() {
+				blacklist := service.GetTokenBlacklist()
+				blacklist.AddToBlacklist(tokenStr, expireTime)
+			}
+		}
+
+		logger.Info("[API] /user/forgot-password/reset 重置成功，token已加入黑名单")
 		middleware.SuccessWithMessage(c, "密码重置成功，请登录", nil)
 	}
 }

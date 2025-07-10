@@ -15,7 +15,9 @@ import (
 
 func RegisterRouter(db *sql.DB) *gin.Engine {
 	r := gin.Default()
+	// 全局注册AuthMiddleware
 	r.Use(middleware.AuthMiddleware())
+
 	userGroup := r.Group("/user")
 	userGroup.POST("/send-code", controller.SendCode(db))
 	userGroup.POST("/register", controller.Register(db))
@@ -25,6 +27,7 @@ func RegisterRouter(db *sql.DB) *gin.Engine {
 	userGroup.POST("/forgot-password/send-code", controller.ForgotPasswordSendCode(db))
 	userGroup.POST("/forgot-password/reset", controller.ForgotPasswordReset(db))
 	userGroup.GET("/info", controller.UserInfo(db))
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return r
 } 
