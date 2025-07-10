@@ -1,3 +1,5 @@
 db
 docs
 logs
+coverage
+backend-api

@@ -10,11 +10,11 @@ import (
 
 type User struct {
 	ID               int
-	Username         string
-	Email            string
+	Username         sql.NullString
+	Email            sql.NullString
 	PasswordHash     string
 	IsActive         bool
-	Code             string
+	Code             sql.NullString
 	CodeExpireAt     sql.NullTime
 	FailedLoginCount int
 	LockedUntil      time.Time

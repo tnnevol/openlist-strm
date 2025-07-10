@@ -4,9 +4,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/tnnevol/openlist-strm/backend-api/internal/service"
 )
 
 // 统一错误码定义
@@ -59,6 +61,15 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+		
+		// 检查token是否在黑名单中
+		blacklist := service.GetTokenBlacklist()
+		if blacklist.IsBlacklisted(tokenStr) {
+			Unauthorized(c, "token已失效，请重新登录")
+			c.Abort()
+			return
+		}
+		
 		jwtKey := []byte(os.Getenv("JWT_SECRET"))
 		if len(jwtKey) == 0 {
 			jwtKey = []byte("secret")
@@ -72,6 +83,16 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		
+		// 检查token是否已过期
+		if exp, ok := claims["exp"].(float64); ok {
+			if time.Now().Unix() > int64(exp) {
+				Unauthorized(c, "token已过期")
+				c.Abort()
+				return
+			}
+		}
+		
 		c.Set("claims", claims)
 		c.Next()
 	}

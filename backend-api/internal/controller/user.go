@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -364,6 +366,136 @@ func ForgotPasswordReset(db *sql.DB) gin.HandlerFunc {
 		
 		logger.Info("[API] /user/forgot-password/reset 重置成功")
 		middleware.SuccessWithMessage(c, "密码重置成功，请登录", nil)
+	}
+}
+
+// Logout godoc
+// @Summary      用户登出
+// @Description  用户登出接口，将token加入黑名单使其立即失效
+// @Tags         用户
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer {token}"
+// @Success      200    {object}  model.Response
+// @Router       /user/logout [post]
+func Logout(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		logger.Info("[API] /user/logout called - 请求入口")
+		
+		// 获取token
+		tokenStr := c.GetHeader("Authorization")
+		if tokenStr == "" {
+			logger.Error("[API] /user/logout 未获取到Authorization header")
+			middleware.Unauthorized(c, "未登录或token缺失")
+			return
+		}
+		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+		
+		// 获取用户信息
+		claims, ok := c.Get("claims")
+		if !ok {
+			logger.Error("[API] /user/logout 未获取到claims")
+			middleware.Unauthorized(c, "未登录或token缺失")
+			return
+		}
+		
+		// 解析用户信息
+		var username string
+		var userID int
+		var expireTime time.Time
+		
+		switch m := claims.(type) {
+		case map[string]interface{}:
+			if v, ok := m["username"]; ok {
+				switch vv := v.(type) {
+				case string:
+					username = vv
+				case []byte:
+					username = string(vv)
+				default:
+					username = fmt.Sprintf("%v", vv)
+				}
+			}
+			if v, ok := m["user_id"]; ok {
+				switch vv := v.(type) {
+				case float64:
+					userID = int(vv)
+				case int:
+					userID = vv
+				default:
+					userID = 0
+				}
+			}
+			if v, ok := m["exp"].(float64); ok {
+				expireTime = time.Unix(int64(v), 0)
+			}
+		case jwt.MapClaims:
+			if v, ok := m["username"]; ok {
+				switch vv := v.(type) {
+				case string:
+					username = vv
+				case []byte:
+					username = string(vv)
+				default:
+					username = fmt.Sprintf("%v", vv)
+				}
+			}
+			if v, ok := m["user_id"]; ok {
+				switch vv := v.(type) {
+				case float64:
+					userID = int(vv)
+				case int:
+					userID = vv
+				default:
+					userID = 0
+				}
+			}
+			if v, ok := m["exp"].(float64); ok {
+				expireTime = time.Unix(int64(v), 0)
+			}
+		default:
+			logger.Error("[API] /user/logout claims 类型异常", zap.Any("claims_type", fmt.Sprintf("%T", claims)))
+			middleware.InternalServerError(c, "用户信息解析失败")
+			return
+		}
+		
+		logger.Info("[API] /user/logout 用户登出", 
+			zap.String("username", username),
+			zap.Int("user_id", userID),
+			zap.Time("expireTime", expireTime))
+		
+		// 将token添加到黑名单
+		blacklist := service.GetTokenBlacklist()
+		blacklist.AddToBlacklist(tokenStr, expireTime)
+		
+		logger.Info("[API] /user/logout 登出成功，token已加入黑名单", zap.String("username", username))
+		middleware.SuccessWithMessage(c, "登出成功", nil)
+	}
+}
+
+// TokenBlacklistStatus godoc
+// @Summary      获取Token黑名单状态
+// @Description  获取当前token黑名单的状态信息（仅用于监控）
+// @Tags         用户
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer {token}"
+// @Success      200    {object}  model.Response{data=object{blacklistSize=int}}
+// @Router       /user/token-blacklist-status [get]
+func TokenBlacklistStatus(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		logger.Info("[API] /user/token-blacklist-status called - 请求入口")
+		
+		// 获取黑名单状态
+		blacklist := service.GetTokenBlacklist()
+		blacklistSize := blacklist.GetBlacklistSize()
+		
+		logger.Info("[API] /user/token-blacklist-status 获取状态", zap.Int("blacklistSize", blacklistSize))
+		
+		middleware.Success(c, gin.H{
+			"blacklistSize": blacklistSize,
+			"timestamp":     time.Now().Unix(),
+		})
 	}
 }
 

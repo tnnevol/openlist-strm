@@ -66,11 +66,11 @@ func SendCode(db *sql.DB, email string) (string, error) {
 	}
 	logger.Info("[SendCode] email not exists, create user", zap.String("email", email))
 	u := &model.User{
-		Email:        email,
-		Username:     "",
+		Email:        sql.NullString{String: email, Valid: true},
+		Username:     sql.NullString{String: "", Valid: false},
 		PasswordHash: "",
 		IsActive:     false,
-		Code:         code,
+		Code:         sql.NullString{String: code, Valid: true},
 		CodeExpireAt: sql.NullTime{Time: expire, Valid: true},
 		CreatedAt:    time.Now(),
 	}
@@ -91,8 +91,8 @@ func ActivateUserWithPassword(db *sql.DB, email, username, password, code string
 		logger.Error("[Register] GetUserByCode error", zap.Error(err))
 		return err
 	}
-	if u.Email != email {
-		logger.Error("[Register] code/email mismatch", zap.String("db_email", u.Email), zap.String("req_email", email))
+	if u.Email.String != email {
+		logger.Error("[Register] code/email mismatch", zap.String("db_email", u.Email.String), zap.String("req_email", email))
 		return sql.ErrNoRows
 	}
 	if !u.CodeExpireAt.Valid || time.Now().After(u.CodeExpireAt.Time) {
@@ -124,7 +124,7 @@ func LoginUser(db *sql.DB, username, password string) (string, error) {
 		logger.Error("[Login] GetUserByUsername error", zap.Error(err))
 		return "", err
 	}
-	logger.Info("[Login] user info", zap.String("username", u.Username), zap.String("email", u.Email), zap.String("hash", u.PasswordHash), zap.Bool("is_active", u.IsActive), zap.Int("id", u.ID))
+	logger.Info("[Login] user info", zap.String("username", u.Username.String), zap.String("email", u.Email.String), zap.String("hash", u.PasswordHash), zap.Bool("is_active", u.IsActive), zap.Int("id", u.ID))
 	if !u.IsActive {
 		return "not_activated", nil
 	}
@@ -132,7 +132,7 @@ func LoginUser(db *sql.DB, username, password string) (string, error) {
 		return "locked", nil
 	}
 	if u.PasswordHash == "" {
-		logger.Error("[Login] password hash is empty", zap.String("username", u.Username))
+		logger.Error("[Login] password hash is empty", zap.String("username", u.Username.String))
 		return "", errors.New("用户名或密码错误")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
@@ -148,8 +148,8 @@ func LoginUser(db *sql.DB, username, password string) (string, error) {
 	model.ResetLoginFail(db, u.ID)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id":  u.ID,
-		"username": u.Username,
-		"email":    u.Email,
+		"username": u.Username.String,
+		"email":    u.Email.String,
 		"exp":      time.Now().Add(31 * 24 * time.Hour).Unix(),
 	})
 	jwtKey := []byte(os.Getenv("JWT_SECRET"))
@@ -157,7 +157,7 @@ func LoginUser(db *sql.DB, username, password string) (string, error) {
 		jwtKey = []byte("secret")
 	}
 	tokenString, _ := token.SignedString(jwtKey)
-	logger.Info("[Login] success", zap.String("username", u.Username))
+	logger.Info("[Login] success", zap.String("username", u.Username.String))
 	return tokenString, nil
 }
 
@@ -199,8 +199,8 @@ func ForgotPasswordReset(db *sql.DB, email, code, newPassword string) error {
 		logger.Error("[ForgotPasswordReset] GetActiveUserByCode error", zap.Error(err))
 		return errors.New("验证码无效或已过期")
 	}
-	if user.Email != email {
-		logger.Error("[ForgotPasswordReset] code/email mismatch", zap.String("db_email", user.Email), zap.String("req_email", email))
+	if user.Email.String != email {
+		logger.Error("[ForgotPasswordReset] code/email mismatch", zap.String("db_email", user.Email.String), zap.String("req_email", email))
 		return errors.New("验证码无效或已过期")
 	}
 	if !user.CodeExpireAt.Valid || time.Now().After(user.CodeExpireAt.Time) {
@@ -224,8 +224,8 @@ func GetUserBaseInfo(db *sql.DB, username string) (map[string]interface{}, error
 	}
 	return map[string]interface{}{
 		"id": u.ID,
-		"username": u.Username,
-		"email": u.Email,
+		"username": u.Username.String,
+		"email": u.Email.String,
 		"isActive": u.IsActive,
 		"createdAt": u.CreatedAt,
 	}, nil
