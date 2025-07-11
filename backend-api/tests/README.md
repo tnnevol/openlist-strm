@@ -11,22 +11,29 @@
 - **内存数据库**: 使用SQLite内存数据库进行测试
 - **测试工具**: 提供丰富的测试工具函数
 - **覆盖率报告**: 支持生成测试覆盖率报告
+- **真实用户测试**: 基于YAML配置的真实用户测试系统
 
 ## 目录结构
 
 ```
 tests/
-├── README.md                 # 测试文档
-├── run_tests.sh             # 测试运行脚本
-├── test_config.go           # 测试配置
-├── http_test_utils.go       # HTTP测试工具
-├── unit/                    # 单元测试
+├── README.md                           # 测试文档
+├── README_REAL_USER_TESTING.md         # 真实用户测试系统文档
+├── README_TOKEN_EXPIRED.md             # Token过期测试文档
+├── run_tests.sh                       # 测试运行脚本
+├── test_config.go                     # 测试配置
+├── http_test_utils.go                 # HTTP测试工具
+├── unit/                              # 单元测试
 │   ├── user_controller_test.go
 │   └── user_service_test.go
-├── integration/             # 集成测试
+├── integration/                       # 集成测试
 │   ├── user_integration_test.go
+│   ├── real_user_integration_test.go  # 真实用户集成测试
 │   └── token_expired_integration_test.go
-└── fixtures/                # 测试数据
+├── config/                            # 配置管理
+│   └── test_config.go                 # YAML配置解析器
+└── fixtures/                          # 测试数据
+    └── test_users.yml                 # 用户测试配置文件
 ```
 
 ## 快速开始
@@ -35,6 +42,7 @@ tests/
 
 ```bash
 go get github.com/stretchr/testify
+go get gopkg.in/yaml.v3
 ```
 
 ### 2. 运行测试
@@ -48,6 +56,9 @@ go get github.com/stretchr/testify
 
 # 运行集成测试
 ./run_tests.sh integration
+
+# 运行真实用户测试
+./run_tests.sh real-user
 
 # 运行token过期测试
 ./run_tests.sh token-expired
@@ -72,6 +83,27 @@ go test -v ./tests/unit/...
 go test -v -coverprofile=coverage.out ./tests/...
 go tool cover -html=coverage.out -o coverage.html
 ```
+
+## 测试体系
+
+### 1. 真实用户测试系统
+
+项目引入了基于 YAML 配置的真实用户测试系统，提供更贴近实际使用场景的测试：
+
+- **配置文件驱动**: 使用 `tests/fixtures/test_users.yml` 管理测试用户数据
+- **多用户类型**: 支持正常用户、边界测试用户、错误测试用户
+- **场景化测试**: 预定义注册、登录、Token管理等测试场景
+- **自动化管理**: 自动清理测试数据，确保测试独立性
+
+详细说明请参考：[README_REAL_USER_TESTING.md](README_REAL_USER_TESTING.md)
+
+### 2. 传统测试框架
+
+- **分层测试**: 单元测试和集成测试分离
+- **测试套件**: 使用 `testify/suite` 组织测试用例
+- **断言库**: 使用 `testify/assert` 进行断言
+- **HTTP测试**: 使用 `httptest` 测试API接口
+- **内存数据库**: 使用SQLite内存数据库进行测试
 
 ## 测试工具
 
@@ -195,6 +227,55 @@ func (suite *UserIntegrationTestSuite) TestUserRegistrationFlow() {
             Method:      "POST",
             URL:         "/user/send-code",
             Body:        map[string]interface{}{"email": "test@example.com"},
+            ExpectedCode: 200,
+        }
+        w := tests.MakeTestRequest(suite.T(), router, req)
+        assert.Equal(suite.T(), 200, w.Code)
+    })
+}
+```
+
+### 真实用户测试示例
+
+```go
+package integration
+
+import (
+    "testing"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/suite"
+    "github.com/tnnevol/openlist-strm/backend-api/tests"
+    "github.com/tnnevol/openlist-strm/backend-api/tests/config"
+)
+
+type RealUserIntegrationTestSuite struct {
+    suite.Suite
+    config *tests.TestConfig
+    userConfig *config.TestConfig
+}
+
+func (suite *RealUserIntegrationTestSuite) SetupSuite() {
+    suite.config = tests.SetupTestEnvironment(suite.T())
+
+    // 加载真实用户配置
+    userConfig, err := config.LoadTestConfig("")
+    assert.NoError(suite.T(), err)
+    suite.userConfig = userConfig
+}
+
+func (suite *RealUserIntegrationTestSuite) TestRealUserRegistration() {
+    router := tests.CreateTestServer(suite.T(), suite.config.DB)
+
+    // 获取正常用户组中的第一个用户
+    normalUsers := suite.userConfig.GetNormalUsers()
+    testUser := normalUsers[0]
+
+    suite.Run("真实用户注册流程", func() {
+        // 发送验证码
+        req := tests.TestRequest{
+            Method:      "POST",
+            URL:         "/user/send-code",
+            Body:        map[string]interface{}{"email": testUser.Email},
             ExpectedCode: 200,
         }
         w := tests.MakeTestRequest(suite.T(), router, req)
@@ -476,3 +557,10 @@ func NewTestUtility(t *testing.T) {
 2. 确保测试覆盖率不降低
 3. 遵循测试命名规范
 4. 更新相关文档
+
+## 相关文档
+
+- [测试体系总览](README_TESTING_SYSTEM.md) - 完整测试体系的架构和特性总览
+- [真实用户测试系统](README_REAL_USER_TESTING.md) - 基于YAML配置的真实用户测试系统
+- [Token过期测试](README_TOKEN_EXPIRED.md) - Token过期处理测试详细说明
+- [API响应格式](../API_RESPONSE_FORMAT.md) - API响应格式规范
