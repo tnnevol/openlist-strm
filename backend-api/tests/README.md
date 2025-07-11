@@ -24,7 +24,8 @@ tests/
 │   ├── user_controller_test.go
 │   └── user_service_test.go
 ├── integration/             # 集成测试
-│   └── user_integration_test.go
+│   ├── user_integration_test.go
+│   └── token_expired_integration_test.go
 └── fixtures/                # 测试数据
 ```
 
@@ -40,19 +41,22 @@ go get github.com/stretchr/testify
 
 ```bash
 # 运行所有测试
-./tests/run_tests.sh
+./run_tests.sh
 
 # 运行单元测试
-./tests/run_tests.sh unit
+./run_tests.sh unit
 
 # 运行集成测试
-./tests/run_tests.sh integration
+./run_tests.sh integration
+
+# 运行token过期测试
+./run_tests.sh token-expired
 
 # 生成覆盖率报告
-./tests/run_tests.sh coverage
+./run_tests.sh coverage
 
 # 查看帮助
-./tests/run_tests.sh help
+./run_tests.sh help
 ```
 
 ### 3. 直接使用go test
@@ -198,6 +202,170 @@ func (suite *UserIntegrationTestSuite) TestUserRegistrationFlow() {
     })
 }
 ```
+
+## Token过期测试
+
+### 概述
+
+本系统对token过期进行了特殊处理，当token过期时不会直接拒绝请求，而是返回特定的过期状态码，让前端能够区分不同的认证失败原因。
+
+### 错误码定义
+
+- `401`: 未授权（未登录或token缺失）
+- `40101`: Token过期专用错误码
+
+### 处理逻辑
+
+在`AuthMiddleware`中，当检测到token过期时：
+
+```go
+// 检查token是否已过期
+if exp, ok := claims["exp"].(float64); ok {
+    if time.Now().Unix() > int64(exp) {
+        println("[AuthMiddleware] token已过期，返回过期状态")
+        TokenExpired(c, "token已过期")
+        c.Abort()
+        return
+    }
+}
+```
+
+### 响应格式
+
+当token过期时，系统会返回以下格式的响应：
+
+```json
+{
+  "code": 40101,
+  "message": "token已过期"
+}
+```
+
+### 前端处理建议
+
+前端可以根据不同的错误码进行不同的处理：
+
+```javascript
+// 示例前端处理逻辑
+if (response.code === 401) {
+  // 未登录，跳转到登录页
+  redirectToLogin();
+} else if (response.code === 40101) {
+  // token过期，静默刷新token或跳转登录页
+  handleTokenExpired();
+} else {
+  // 其他错误
+  handleOtherError(response);
+}
+```
+
+### 测试覆盖范围
+
+token过期测试包含以下测试场景：
+
+1. **token过期处理流程**: 测试完整的token过期处理机制
+2. **无token访问**: 测试未提供token时的处理
+3. **无效token**: 测试无效token的处理
+4. **token黑名单**: 测试过期token在黑名单中的处理
+5. **生成过期token接口**: 测试生成过期token的API接口
+6. **无认证访问**: 测试无认证访问生成过期token接口
+
+### 测试用例说明
+
+#### TestTokenExpiredHandling
+
+- 创建测试用户并获取有效token
+- 使用有效token访问需要认证的接口
+- 生成过期token（1秒后过期）
+- 等待token过期
+- 使用过期token访问接口，验证返回40101错误码
+
+#### TestNoTokenHandling
+
+- 测试无token访问需要认证的接口
+- 验证返回401错误码（不是40101）
+
+#### TestInvalidTokenHandling
+
+- 测试无效token访问需要认证的接口
+- 验证返回401错误码（不是40101）
+
+#### TestTokenBlacklistWithExpiredToken
+
+- 创建测试用户并获取有效token
+- 先登出，将token加入黑名单
+- 使用已加入黑名单的token访问接口
+- 验证返回401错误码（不是40101）
+
+#### TestGenerateExpiredTokenEndpoint
+
+- 测试生成过期token接口的响应格式
+- 验证返回的token、expires_in、message字段
+
+#### TestGenerateExpiredTokenWithoutAuth
+
+- 测试无认证访问生成过期token接口
+- 验证返回401错误码
+
+### 运行token过期测试
+
+```bash
+# 运行所有token过期测试
+./run_tests.sh token-expired
+
+# 直接使用go test运行
+go test -v -run TestTokenExpiredIntegrationTestSuite ./integration/...
+```
+
+### 测试接口
+
+系统提供了测试接口来生成过期token：
+
+```
+POST /user/generate-expired-token
+Authorization: Bearer <valid_token>
+```
+
+响应：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "token": "expired_token_string",
+    "expires_in": 1,
+    "message": "过期token已生成，1秒后过期"
+  }
+}
+```
+
+### 测试数据
+
+测试使用以下默认用户数据：
+
+```go
+TestUserData{
+    Username:     "testuser",
+    Email:        "test@example.com",
+    Password:     "TestPass123",
+    IsActive:     true,
+    PasswordHash: "$2a$10$test.hash.for.testing",
+}
+```
+
+### 优势
+
+1. **精确的错误分类**: 区分未登录和token过期两种情况
+2. **更好的用户体验**: 前端可以根据不同情况提供不同的处理方式
+3. **便于调试**: 明确的错误码便于问题定位
+4. **符合RESTful规范**: 使用标准的HTTP状态码
+
+### 注意事项
+
+1. 过期token仍然会被加入黑名单（如果用户主动登出）
+2. 系统会同时检查token的`exp`字段和`token_invalid_before`字段
+3. 建议前端在收到40101错误码时，引导用户重新登录
 
 ## 测试最佳实践
 
