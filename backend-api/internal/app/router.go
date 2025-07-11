@@ -24,6 +24,7 @@ func RegisterRouter(db *sql.DB) *gin.Engine {
 	userGroup.POST("/login", controller.Login(db))
 	userGroup.POST("/logout", controller.Logout(db))
 	userGroup.GET("/token-blacklist-status", controller.TokenBlacklistStatus(db))
+	userGroup.POST("/generate-expired-token", controller.GenerateExpiredToken(db))
 	userGroup.POST("/forgot-password/send-code", controller.ForgotPasswordSendCode(db))
 	userGroup.POST("/forgot-password/reset", controller.ForgotPasswordReset(db))
 	userGroup.GET("/info", controller.UserInfo(db))

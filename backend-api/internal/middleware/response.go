@@ -1,10 +1,13 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -16,6 +19,7 @@ const (
 	CodeSuccess         = 200
 	CodeBadRequest      = 400
 	CodeUnauthorized    = 401
+	CodeTokenExpired    = 40101 // token过期专用错误码
 	CodeNotFound        = 404
 	CodeTooManyRequests = 429
 	CodeInternalError   = 500
@@ -84,17 +88,40 @@ func AuthMiddleware() gin.HandlerFunc {
 			return jwtKey, nil
 		})
 		if err != nil || !token.Valid {
-			println("[AuthMiddleware] token解析失败或无效，拒绝", err)
+			// 自动区分token过期和其他无效
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				println("[AuthMiddleware] token已过期（解析时），返回过期状态")
+				TokenExpired(c, "token已过期")
+				c.Abort()
+				return
+			}
+			// 兼容其他过期错误类型
+			if err != nil && (strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "过期")) {
+				println("[AuthMiddleware] token已过期（其他错误类型），返回过期状态")
+				TokenExpired(c, "token已过期")
+				c.Abort()
+				return
+			}
+			println("[AuthMiddleware] token解析失败或无效，拒绝", err, "类型:", fmt.Sprintf("%T", err))
 			Unauthorized(c, "token无效或已过期")
 			c.Abort()
 			return
 		}
 
+		// 添加token解析成功的详细日志
+		println("[AuthMiddleware] token解析成功，claims:", fmt.Sprintf("%+v", claims))
+		if exp, ok := claims["exp"].(float64); ok {
+			println("[AuthMiddleware] token exp字段:", int64(exp), "当前时间:", time.Now().Unix())
+		}
+		if iat, ok := claims["iat"].(float64); ok {
+			println("[AuthMiddleware] token iat字段:", int64(iat))
+		}
+
 		// 检查token是否已过期
 		if exp, ok := claims["exp"].(float64); ok {
 			if time.Now().Unix() > int64(exp) {
-				println("[AuthMiddleware] token已过期，拒绝")
-				Unauthorized(c, "token已过期")
+				println("[AuthMiddleware] token已过期，返回过期状态")
+				TokenExpired(c, "token已过期")
 				c.Abort()
 				return
 			}
@@ -118,22 +145,43 @@ func AuthMiddleware() gin.HandlerFunc {
 				db, err := service.GetDB()
 				if err == nil {
 					user, err := service.GetUserByUsername(db, username)
-					println("[AuthMiddleware] 校验token_invalid_before username=", username, "iat=", int64(iat), "token_invalid_before=", user.TokenInvalidBefore.Time.Unix(), "valid=", user.TokenInvalidBefore.Valid, "查找err=", err)
 					if err != nil {
 						println("[AuthMiddleware] 查找用户失败，拒绝")
 						Unauthorized(c, "token已失效，请重新登录")
 						c.Abort()
 						return
 					}
+					
+					// 安全地打印日志，避免空指针异常
+					var tokenInvalidBeforeStr string
+					var validStr string
+					if user != nil && user.TokenInvalidBefore.Valid {
+						tokenInvalidBeforeStr = fmt.Sprintf("%d", user.TokenInvalidBefore.Time.Unix())
+						validStr = "true"
+					} else {
+						tokenInvalidBeforeStr = "nil"
+						validStr = "false"
+					}
+					println("[AuthMiddleware] 校验token_invalid_before username=", username, "iat=", int64(iat), "token_invalid_before=", tokenInvalidBeforeStr, "valid=", validStr, "查找err=", err)
+					
+					if user == nil {
+						println("[AuthMiddleware] 用户对象为空，拒绝")
+						Unauthorized(c, "token已失效，请重新登录")
+						c.Abort()
+						return
+					}
+					
 					if !user.TokenInvalidBefore.Valid {
 						println("[AuthMiddleware] token_invalid_before无效，拒绝")
-						Unauthorized(c, "token已失效，请重新登录")
+						TokenExpired(c, "token已过期")
 						c.Abort()
 						return
 					}
 					if int64(iat) < user.TokenInvalidBefore.Time.Unix() {
 						println("[AuthMiddleware] token签发时间早于token_invalid_before，拒绝")
-						Unauthorized(c, "token已失效，请重新登录")
+						println("[AuthMiddleware] 准备返回TokenExpired，code=40101")
+						TokenExpired(c, "token已过期")
+						println("[AuthMiddleware] TokenExpired已调用")
 						c.Abort()
 						return
 					}
@@ -166,7 +214,7 @@ func SuccessWithMessage(c *gin.Context, message string, data interface{}) {
 
 // Error 错误响应
 func Error(c *gin.Context, code int, message string) {
-	c.JSON(code, Response{
+	c.JSON(http.StatusOK, Response{
 		Code:    code,
 		Message: message,
 	})
@@ -174,27 +222,35 @@ func Error(c *gin.Context, code int, message string) {
 
 // BadRequest 400错误
 func BadRequest(c *gin.Context, message string) {
-	Error(c, http.StatusBadRequest, message)
+	Error(c, CodeBadRequest, message)
 }
 
 // Unauthorized 401错误
 func Unauthorized(c *gin.Context, message string) {
-	Error(c, http.StatusUnauthorized, message)
+	Error(c, CodeUnauthorized, message)
+}
+
+// TokenExpired token过期错误
+func TokenExpired(c *gin.Context, message string) {
+	c.JSON(http.StatusOK, Response{
+		Code:    CodeTokenExpired,
+		Message: message,
+	})
 }
 
 // NotFound 404错误
 func NotFound(c *gin.Context, message string) {
-	Error(c, http.StatusNotFound, message)
+	Error(c, CodeNotFound, message)
 }
 
 // InternalServerError 500错误
 func InternalServerError(c *gin.Context, message string) {
-	Error(c, http.StatusInternalServerError, message)
+	Error(c, CodeInternalError, message)
 }
 
 // TooManyRequests 429错误
 func TooManyRequests(c *gin.Context, message string) {
-	Error(c, http.StatusTooManyRequests, message)
+	Error(c, CodeTooManyRequests, message)
 }
 
 // ValidationError 参数验证错误

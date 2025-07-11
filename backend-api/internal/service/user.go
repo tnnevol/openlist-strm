@@ -243,8 +243,18 @@ func GetUserBaseInfo(db *sql.DB, username string) (map[string]interface{}, error
 	}, nil
 }
 
+var globalDB *sql.DB
+
+// SetGlobalDB 设置全局数据库连接（主要用于测试）
+func SetGlobalDB(db *sql.DB) {
+	globalDB = db
+}
+
 // GetDB 返回全局数据库连接
 func GetDB() (*sql.DB, error) {
+	if globalDB != nil {
+		return globalDB, nil
+	}
 	return model.InitDB()
 }
 

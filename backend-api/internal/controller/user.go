@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -494,6 +495,57 @@ func Logout(db *sql.DB) gin.HandlerFunc {
 		
 		logger.Info("[API] /user/logout 登出成功，token已加入黑名单", zap.String("username", username))
 		middleware.SuccessWithMessage(c, "登出成功", nil)
+	}
+}
+
+// GenerateExpiredToken 生成过期token用于测试
+func GenerateExpiredToken(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		logger.Info("[API] /user/generate-expired-token called - 请求入口")
+
+		claims, exists := c.Get("claims")
+		if !exists {
+			logger.Error("[API] /user/generate-expired-token 未获取到claims")
+			middleware.Unauthorized(c, "未登录")
+			return
+		}
+
+		claimsMap, ok := claims.(jwt.MapClaims)
+		if !ok {
+			logger.Error("[API] /user/generate-expired-token claims 类型异常", zap.Any("claims_type", fmt.Sprintf("%T", claims)))
+			middleware.InternalServerError(c, "获取用户信息失败")
+			return
+		}
+
+		// 生成一个1秒后过期的token
+		now := time.Now().Unix()
+		expiredToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id":  claimsMap["user_id"],
+			"username": claimsMap["username"],
+			"email":    claimsMap["email"],
+			"exp":      now + 1, // 1秒后过期
+			"iat":      now,
+		})
+
+		jwtKey := []byte(os.Getenv("JWT_SECRET"))
+		if len(jwtKey) == 0 {
+			jwtKey = []byte("secret")
+		}
+
+		tokenString, err := expiredToken.SignedString(jwtKey)
+		if err != nil {
+			logger.Error("[API] /user/generate-expired-token 生成token失败", zap.Error(err))
+			middleware.InternalServerError(c, "生成token失败")
+			return
+		}
+
+		logger.Info("[API] /user/generate-expired-token 生成过期token", zap.String("username", claimsMap["username"].(string)))
+
+		middleware.Success(c, gin.H{
+			"token": tokenString,
+			"expires_in": 1,
+			"message": "过期token已生成，1秒后过期",
+		})
 	}
 }
 
