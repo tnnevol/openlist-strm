@@ -1,6 +1,6 @@
 import type { UserInfo } from '@vben/types';
 
-import { baseRequestClient, requestClient } from '#/api/request';
+import { requestClient } from '#/api/request';
 
 /**
  * 获取用户信息

@@ -6,6 +6,7 @@ import { isFunction } from '@vben/utils';
 
 import axios from 'axios';
 
+const whiteList = ['/user/logout'].map((item) => new RegExp(item));
 export const defaultResponseInterceptor = ({
   codeField = 'code',
   dataField = 'data',
@@ -27,6 +28,14 @@ export const defaultResponseInterceptor = ({
       }
 
       if (status >= 200 && status < 400) {
+        // 增加白名单接口，不进行拦截
+        // 使用正则判断
+        if (whiteList.some((item) => item.test(config.url ?? ''))) {
+          return responseData;
+        }
+        if (responseData?.code !== successCode) {
+          throw Object.assign({}, response, { response });
+        }
         if (config.responseReturn === 'body') {
           return responseData;
         } else if (
@@ -60,8 +69,10 @@ export const authenticateResponseInterceptor = ({
   return {
     rejected: async (error) => {
       const { config, response } = error;
-      // 如果不是 401 错误，直接抛出异常
-      if (response?.status !== 401) {
+      const status =
+        response?.status === 200 ? response?.data?.code : response?.status;
+      // 如果不是 40101 错误，直接抛出异常
+      if (![401, 40101].includes(status)) {
         throw error;
       }
       // 判断是否启用了 refreshToken 功能
