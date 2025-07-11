@@ -103,7 +103,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				return
 			}
 			println("[AuthMiddleware] token解析失败或无效，拒绝", err, "类型:", fmt.Sprintf("%T", err))
-			Unauthorized(c, "token无效或已过期")
+			Unauthorized(c, "token无效")
 			c.Abort()
 			return
 		}
@@ -147,7 +147,7 @@ func AuthMiddleware() gin.HandlerFunc {
 					user, err := service.GetUserByUsername(db, username)
 					if err != nil {
 						println("[AuthMiddleware] 查找用户失败，拒绝")
-						Unauthorized(c, "token已失效，请重新登录")
+						Unauthorized(c, "token无效，请重新登录")
 						c.Abort()
 						return
 					}
@@ -166,7 +166,7 @@ func AuthMiddleware() gin.HandlerFunc {
 					
 					if user == nil {
 						println("[AuthMiddleware] 用户对象为空，拒绝")
-						Unauthorized(c, "token已失效，请重新登录")
+						Unauthorized(c, "token无效，请重新登录")
 						c.Abort()
 						return
 					}
