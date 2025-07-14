@@ -34,7 +34,7 @@ export const shared = defineConfig({
   pwa: pwa(),
   srcDir: 'src',
   themeConfig: {
-    i18nRouting: true,
+    i18nRouting: false,
     logo: 'https://unpkg.com/@vbenjs/static-source@0.1.7/source/logo-v1.webp',
     search: {
       options: {
@@ -44,12 +44,12 @@ export const shared = defineConfig({
       },
       provider: 'local',
     },
-    siteTitle: 'Vben Admin',
+    siteTitle: 'OpenList Stream',
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/vbenjs/vue-vben-admin' },
+      { icon: 'github', link: 'https://github.com/tnnevol/openlist-strm' },
     ],
   },
-  title: 'Vben Admin',
+  title: 'OpenList Stream',
   vite: {
     build: {
       chunkSizeWarningLimit: Infinity,
@@ -88,7 +88,7 @@ export const shared = defineConfig({
             username: 'likui628',
           },
         ],
-        repoURL: () => 'https://github.com/vbenjs/vue-vben-admin',
+        repoURL: () => 'https://github.com/tnnevol/openlist-strm',
       }),
       GitChangelogMarkdownSection(),
       viteArchiverPlugin({ outputDir: '.vitepress' }),
@@ -111,7 +111,7 @@ export const shared = defineConfig({
 
 function head(): HeadConfig[] {
   return [
-    ['meta', { content: 'Vbenjs Team', name: 'author' }],
+    ['meta', { content: 'tnnevol', name: 'author' }],
     [
       'meta',
       {
@@ -128,7 +128,7 @@ function head(): HeadConfig[] {
         name: 'viewport',
       },
     ],
-    ['meta', { content: 'vben admin docs', name: 'keywords' }],
+    ['meta', { content: 'openlist stream docs', name: 'keywords' }],
     ['link', { href: '/favicon.ico', rel: 'icon' }],
     // [
     //   'script',

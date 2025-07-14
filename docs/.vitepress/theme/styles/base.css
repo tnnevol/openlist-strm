@@ -2,8 +2,15 @@ html.dark {
   color-scheme: dark;
 }
 
+/* 移除VitePress默认的背景色设置 */
 .dark .VPContent {
-  /* background-color: #14161a; */
+  background-color: transparent !important;
+}
+
+/* 确保body和html没有默认背景 */
+html,
+body {
+  background: none !important;
 }
 
 .form-valid-error p {

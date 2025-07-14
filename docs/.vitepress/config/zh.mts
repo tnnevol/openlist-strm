@@ -16,7 +16,7 @@ export const zh = defineConfig({
     },
     editLink: {
       pattern:
-        'https://github.com/vbenjs/vue-vben-admin/edit/main/docs/src/:path',
+        'https://github.com/tnnevol/openlist-strm/edit/main/docs/src/:path',
       text: '在 GitHub 上编辑此页面',
     },
     footer: {
@@ -43,6 +43,7 @@ export const zh = defineConfig({
       '/commercial/': { base: '/commercial/', items: sidebarCommercial() },
       '/components/': { base: '/components/', items: sidebarComponents() },
       '/guide/': { base: '/guide/', items: sidebarGuide() },
+      '/backend/': { base: '/backend/', items: sidebarBackend() },
     },
     sidebarMenuLabel: '菜单',
   },
@@ -51,57 +52,9 @@ export const zh = defineConfig({
 function sidebarGuide(): DefaultTheme.SidebarItem[] {
   return [
     {
-      collapsed: false,
-      text: '简介',
-      items: [
-        {
-          link: 'introduction/vben',
-          text: '关于 Vben Admin',
-        },
-        {
-          link: 'introduction/why',
-          text: '为什么选择我们?',
-        },
-        { link: 'introduction/quick-start', text: '快速开始' },
-        { link: 'introduction/thin', text: '精简版本' },
-        {
-          base: '/',
-          link: 'components/introduction',
-          text: '组件文档',
-        },
-      ],
-    },
-    {
-      text: '基础',
-      items: [
-        { link: 'essentials/concept', text: '基础概念' },
-        { link: 'essentials/development', text: '本地开发' },
-        { link: 'essentials/route', text: '路由和菜单' },
-        { link: 'essentials/settings', text: '配置' },
-        { link: 'essentials/icons', text: '图标' },
-        { link: 'essentials/styles', text: '样式' },
-        { link: 'essentials/external-module', text: '外部模块' },
-        { link: 'essentials/build', text: '构建与部署' },
-        { link: 'essentials/server', text: '服务端交互与数据Mock' },
-      ],
-    },
-    {
-      text: '深入',
-      items: [
-        { link: 'in-depth/login', text: '登录' },
-        // { link: 'in-depth/layout', text: '布局' },
-        { link: 'in-depth/theme', text: '主题' },
-        { link: 'in-depth/access', text: '权限' },
-        { link: 'in-depth/locale', text: '国际化' },
-        { link: 'in-depth/features', text: '常用功能' },
-        { link: 'in-depth/check-updates', text: '检查更新' },
-        { link: 'in-depth/loading', text: '全局loading' },
-        { link: 'in-depth/ui-framework', text: '组件库切换' },
-      ],
-    },
-    {
       text: '工程',
       items: [
+        { link: 'project/introduction', text: '项目介绍' },
         { link: 'project/standard', text: '规范' },
         { link: 'project/cli', text: 'CLI' },
         { link: 'project/dir', text: '目录说明' },
@@ -111,12 +64,19 @@ function sidebarGuide(): DefaultTheme.SidebarItem[] {
         { link: 'project/vite', text: 'Vite Config' },
       ],
     },
+  ];
+}
+
+function sidebarBackend(): DefaultTheme.SidebarItem[] {
+  return [
     {
-      text: '其他',
+      text: '后端文档',
       items: [
-        { link: 'other/project-update', text: '项目更新' },
-        { link: 'other/remove-code', text: '移除代码' },
-        { link: 'other/faq', text: '常见问题' },
+        { link: 'database-schema', text: '数据库表结构' },
+        { link: 'database-implementation', text: '数据库实现总结' },
+        { link: 'token-blacklist', text: 'Token黑名单功能' },
+        { link: 'log-rotation', text: '日志轮转功能' },
+        { link: 'test-system', text: '测试体系总览' },
       ],
     },
   ];
@@ -204,12 +164,12 @@ function sidebarComponents(): DefaultTheme.SidebarItem[] {
 function nav(): DefaultTheme.NavItem[] {
   return [
     {
-      activeMatch: '^/(guide|components)/',
+      activeMatch: '^/(guide|components|backend)/',
       text: '文档',
       items: [
         {
           activeMatch: '^/guide/',
-          link: '/guide/introduction/vben',
+          link: '/guide/project/introduction',
           text: '指南',
         },
         {
@@ -218,98 +178,12 @@ function nav(): DefaultTheme.NavItem[] {
           text: '组件',
         },
         {
-          text: '历史版本',
-          items: [
-            {
-              link: 'https://doc.vvbin.cn',
-              text: '2.x版本文档',
-            },
-          ],
+          activeMatch: '^/backend/',
+          link: '/backend/database-schema',
+          text: '后端文档',
         },
       ],
     },
-    {
-      text: '演示',
-      items: [
-        {
-          text: 'Vben Admin',
-          items: [
-            {
-              link: 'https://www.vben.pro',
-              text: '演示版本',
-            },
-            {
-              link: 'https://ant.vben.pro',
-              text: 'Ant Design Vue 版本',
-            },
-            {
-              link: 'https://naive.vben.pro',
-              text: 'Naive 版本',
-            },
-            {
-              link: 'https://ele.vben.pro',
-              text: 'Element Plus版本',
-            },
-          ],
-        },
-        {
-          text: '其他',
-          items: [
-            {
-              link: 'https://vben.vvbin.cn',
-              text: 'Vben Admin 2.x',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      text: version,
-      items: [
-        {
-          link: 'https://github.com/vbenjs/vue-vben-admin/releases',
-          text: '更新日志',
-        },
-        {
-          link: 'https://github.com/orgs/vbenjs/projects/5',
-          text: '路线图',
-        },
-        {
-          link: 'https://github.com/vbenjs/vue-vben-admin/blob/main/.github/contributing.md',
-          text: '贡献',
-        },
-      ],
-    },
-    {
-      link: '/commercial/technical-support',
-      text: '🦄 技术支持',
-    },
-    {
-      link: '/sponsor/personal',
-      text: '✨ 赞助',
-    },
-    {
-      link: '/commercial/community',
-      text: '👨‍👦‍👦 交流群',
-      // items: [
-      //   {
-      //     link: 'https://qun.qq.com/qqweb/qunpro/share?_wv=3&_wwv=128&appChannel=share&inviteCode=22ySzj7pKiw&businessType=9&from=246610&biz=ka&mainSourceId=share&subSourceId=others&jumpsource=shorturl#/pc',
-      //     text: 'QQ频道',
-      //   },
-      //   {
-      //     link: 'https://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=mjZmlhgVzzUxvdxllB6C1vHpX8O8QRL0&authKey=DBdFbBwERmfaKY95JvRWqLCJIRGJAmKyZbrpzZ41EKDMZ5SR6MfbjOBaaNRN73fr&noverify=0&group_code=4286109',
-      //     text: 'QQ群',
-      //   },
-      //   {
-      //     link: 'https://discord.gg/VU62jTecad',
-      //     text: 'Discord',
-      //   },
-      // ],
-    },
-    // {
-    //   link: '/friend-links/',
-    //   text: '🤝 友情链接',
-    // },
   ];
 }
 

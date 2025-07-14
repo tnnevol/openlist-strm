@@ -16,7 +16,7 @@ export const en = defineConfig({
     },
     editLink: {
       pattern:
-        'https://github.com/vbenjs/vue-vben-admin/edit/main/docs/src/:path',
+        'https://github.com/tnnevol/openlist-strm/edit/main/docs/src/:path',
       text: 'Edit this page on GitHub',
     },
     footer: {
@@ -148,84 +148,7 @@ function nav(): DefaultTheme.NavItem[] {
         //   link: '/en/components/introduction',
         //   text: 'Components',
         // },
-        {
-          text: 'Historical Versions',
-          items: [
-            {
-              link: 'https://doc.vvbin.cn',
-              text: '2.x Version Documentation',
-            },
-          ],
-        },
       ],
     },
-    {
-      text: 'Demo',
-      items: [
-        {
-          text: 'Vben Admin',
-          items: [
-            {
-              link: 'https://www.vben.pro',
-              text: 'Demo Version',
-            },
-            {
-              link: 'https://ant.vben.pro',
-              text: 'Ant Design Vue Version',
-            },
-            {
-              link: 'https://naive.vben.pro',
-              text: 'Naive Version',
-            },
-            {
-              link: 'https://ele.vben.pro',
-              text: 'Element Plus Version',
-            },
-          ],
-        },
-        {
-          text: 'Others',
-          items: [
-            {
-              link: 'https://vben.vvbin.cn',
-              text: 'Vben Admin 2.x',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      text: version,
-      items: [
-        {
-          link: 'https://github.com/vbenjs/vue-vben-admin/releases',
-          text: 'Changelog',
-        },
-        {
-          link: 'https://github.com/orgs/vbenjs/projects/5',
-          text: 'Roadmap',
-        },
-        {
-          link: 'https://github.com/vbenjs/vue-vben-admin/blob/main/.github/contributing.md',
-          text: 'Contribution',
-        },
-      ],
-    },
-    {
-      link: '/commercial/technical-support',
-      text: '🦄 Tech Support',
-    },
-    {
-      link: '/sponsor/personal',
-      text: '✨ Sponsor',
-    },
-    {
-      link: '/commercial/community',
-      text: '👨‍👦‍👦 Community',
-    },
-    // {
-    //   link: '/friend-links/',
-    //   text: '🤝 Friend Links',
-    // },
   ];
 }

@@ -1,0 +1,154 @@
+/* 自定义背景样式 - 强制覆盖版本 */
+:root {
+  --vp-c-bg-1: #ffffff;
+  --vp-c-bg-2: #f8f9fa;
+}
+
+.dark {
+  --vp-c-bg-1: #1a1a1a;
+  --vp-c-bg-2: #141414;
+}
+
+/* 完全重置所有可能的背景 */
+html,
+body,
+#app {
+  background: none !important;
+}
+
+/* 主要内容区域 */
+.VPContent {
+  position: relative !important;
+  min-height: 100vh !important;
+  background: none !important;
+}
+
+/* 使用绝对定位的背景层 */
+.VPContent::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--vp-c-bg-1) !important;
+  z-index: -999;
+  pointer-events: none;
+}
+
+.VPContent::after {
+  content: '';
+  position: fixed;
+  top: 100vh;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--vp-c-bg-2) !important;
+  z-index: -999;
+  pointer-events: none;
+}
+
+/* 为侧边栏区域创建专门的背景层 */
+.VPContent {
+  position: relative;
+}
+
+/* 创建一个新的背景层用于侧边栏区域 */
+.VPContent {
+  background: linear-gradient(
+    to bottom,
+    var(--vp-c-bg-1) 0,
+    var(--vp-c-bg-1) var(--vp-nav-height),
+    var(--vp-c-bg-2) var(--vp-nav-height),
+    var(--vp-c-bg-2) 100%
+  ) !important;
+}
+
+/* 确保所有内容在背景之上 */
+.VPContent > *,
+.VPContent > * > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 覆盖VitePress的默认背景变量 - 保留必要的背景色 */
+:root {
+  --vp-c-bg: transparent !important;
+  --vp-c-bg-alt: transparent !important;
+  --vp-c-bg-elv: var(--vp-c-bg-1) !important;
+  --vp-c-bg-soft: var(--vp-c-bg-1) !important;
+}
+
+.dark {
+  --vp-c-bg: transparent !important;
+  --vp-c-bg-alt: transparent !important;
+  --vp-c-bg-elv: var(--vp-c-bg-1) !important;
+  --vp-c-bg-soft: var(--vp-c-bg-1) !important;
+}
+
+/* 特殊处理首页 */
+.VPHome {
+  background: var(--vp-c-bg-1) !important;
+}
+
+/* 导航栏 */
+.VPNav {
+  background: var(--vp-c-bg-1) !important;
+}
+
+/* 左侧边栏 - 使用第二个背景色 */
+.VPSidebar {
+  background: var(--vp-c-bg-2) !important;
+  border-right: 1px solid var(--vp-c-divider) !important;
+}
+
+/* 右侧边栏 - 使用第二个背景色 */
+.VPDocAside {
+  background: var(--vp-c-bg-2) !important;
+  border-left: 1px solid var(--vp-c-divider) !important;
+}
+
+/* 侧边栏内容区域 */
+.VPSidebar .content {
+  background: var(--vp-c-bg-2) !important;
+}
+
+.VPDocAside .content {
+  background: var(--vp-c-bg-2) !important;
+}
+
+/* 文档页面 */
+.VPDoc {
+  background: transparent !important;
+}
+
+.VPDoc .content {
+  background: transparent !important;
+}
+
+/* 修复菜单下拉框背景 */
+.VPNavBarMenuGroup .VPNavBarMenuGroupContent {
+  background: var(--vp-c-bg-1) !important;
+  border: 1px solid var(--vp-c-divider) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.VPNavBarMenuGroup .VPNavBarMenuGroupContent .VPNavBarMenuLink {
+  background: transparent !important;
+}
+
+.VPNavBarMenuGroup .VPNavBarMenuGroupContent .VPNavBarMenuLink:hover {
+  background: var(--vp-c-brand-soft) !important;
+}
+
+/* 修复其他可能的菜单组件 */
+.VPNavBarMenuGroupContent,
+.VPNavBarMenuGroupContent .VPNavBarMenuLink,
+.VPNavBarMenuGroupContent .VPNavBarMenuGroup {
+  background: var(--vp-c-bg-1) !important;
+}
+
+.VPNavBarMenuGroupContent .VPNavBarMenuLink:hover,
+.VPNavBarMenuGroupContent .VPNavBarMenuGroup:hover {
+  background: var(--vp-c-brand-soft) !important;
+}
