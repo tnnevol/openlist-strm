@@ -13,8 +13,8 @@ func InitDatabase() (*gorm.DB, error) {
 		logger.Error("InitDB failed", zap.Error(err))
 		return nil, err
 	}
-	if err := model.AutoMigrateAll(db); err != nil {
-		logger.Error("AutoMigrateAll failed", zap.Error(err))
+	if err := model.MigrateIfNotExists(db); err != nil {
+		logger.Error("MigrateIfNotExists failed", zap.Error(err))
 		return nil, err
 	}
 	logger.Info("AutoMigrate executed")

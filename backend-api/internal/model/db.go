@@ -19,7 +19,7 @@ func InitDB() (*gorm.DB, error) {
 			// 表名不要加 s
 			SingularTable: true,
 			// 单词之间不要加下划线
-			NoLowerCase: true,
+			// NoLowerCase: true,
 		},
 	})
 	return db, err
