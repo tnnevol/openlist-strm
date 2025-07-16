@@ -2,7 +2,6 @@ package controller
 
 import (
 	"bytes"
-	"database/sql"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"github.com/tnnevol/openlist-strm/backend-api/internal/service"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/util"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // SendCode godoc
@@ -27,7 +27,7 @@ import (
 // @Param        email  body  object{email=string}  true  "邮箱"
 // @Success      200    {object}  middleware.Response[string]
 // @Router       /user/send-code [post]
-func SendCode(db *sql.DB) gin.HandlerFunc {
+func SendCode(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/send-code called - 请求入口")
 		var req struct {
@@ -71,7 +71,7 @@ func SendCode(db *sql.DB) gin.HandlerFunc {
 // @Param        register body object{email=string,username=string,password=string,confirmPassword=string,code=string} true "注册信息"
 // @Success      200    {object}  middleware.Response[string]
 // @Router       /user/register [post]
-func Register(db *sql.DB) gin.HandlerFunc {
+func Register(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/register called - 请求入口")
 		
@@ -141,7 +141,7 @@ func Register(db *sql.DB) gin.HandlerFunc {
 		err = service.ActivateUserWithPassword(db, req.Email, req.Username, req.Password, req.Code)
 		if err != nil {
 			logger.Error("[API] /user/register service.ActivateUserWithPassword失败", zap.Error(err))
-			if err == sql.ErrNoRows {
+			if err == gorm.ErrRecordNotFound {
 				middleware.BadRequest(c, "验证码无效或已过期")
 			} else {
 				middleware.InternalServerError(c, "注册失败")
@@ -163,7 +163,7 @@ func Register(db *sql.DB) gin.HandlerFunc {
 // @Param        login body object{username=string,password=string} true "登录信息"
 // @Success      200    {object}  middleware.Response[string]
 // @Router       /user/login [post]
-func Login(db *sql.DB) gin.HandlerFunc {
+func Login(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/login called - 请求入口")
 		
@@ -233,7 +233,7 @@ func Login(db *sql.DB) gin.HandlerFunc {
 // @Param        email  body  object{email=string}  true  "邮箱"
 // @Success      200    {object}  middleware.Response[string]
 // @Router       /user/forgot-password/send-code [post]
-func ForgotPasswordSendCode(db *sql.DB) gin.HandlerFunc {
+func ForgotPasswordSendCode(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/forgot-password/send-code called - 请求入口")
 		
@@ -296,7 +296,7 @@ func ForgotPasswordSendCode(db *sql.DB) gin.HandlerFunc {
 // @Param        reset body object{email=string,code=string,newPassword=string,confirmPassword=string} true "重置信息"
 // @Success      200    {object}  middleware.Response[string]
 // @Router       /user/forgot-password/reset [post]
-func ForgotPasswordReset(db *sql.DB) gin.HandlerFunc {
+func ForgotPasswordReset(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/forgot-password/reset called - 请求入口")
 		
@@ -403,7 +403,7 @@ func ForgotPasswordReset(db *sql.DB) gin.HandlerFunc {
 // @Param        Authorization header string true "Bearer {token}"
 // @Success      200    {object}  middleware.Response[string]
 // @Router       /user/logout [post]
-func Logout(db *sql.DB) gin.HandlerFunc {
+func Logout(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/logout called - 请求入口")
 		
@@ -499,7 +499,7 @@ func Logout(db *sql.DB) gin.HandlerFunc {
 }
 
 // GenerateExpiredToken 生成过期token用于测试
-func GenerateExpiredToken(db *sql.DB) gin.HandlerFunc {
+func GenerateExpiredToken(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/generate-expired-token called - 请求入口")
 
@@ -563,7 +563,7 @@ type TokenBlacklistStatusResponse struct {
 // @Param        Authorization header string true "Bearer {token}"
 // @Success      200    {object}  middleware.Response[TokenBlacklistStatusResponse]
 // @Router       /user/token-blacklist-status [get]
-func TokenBlacklistStatus(db *sql.DB) gin.HandlerFunc {
+func TokenBlacklistStatus(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/token-blacklist-status called - 请求入口")
 		
@@ -589,7 +589,7 @@ func TokenBlacklistStatus(db *sql.DB) gin.HandlerFunc {
 // @Param Authorization header string true "Bearer {token}"
 // @Success 200 {object} middleware.Response[model.UserInfoResponse]
 // @Router /user/info [get]
-func UserInfo(db *sql.DB) gin.HandlerFunc {
+func UserInfo(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /user/info called - 请求入口")
 		
@@ -678,7 +678,7 @@ func UserInfo(db *sql.DB) gin.HandlerFunc {
 }
 
 // RegisterUserRoutes 统一注册所有/user相关接口
-func RegisterUserRoutes(rg *gin.RouterGroup, db *sql.DB) {
+func RegisterUserRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 	rg.POST("/send-code", SendCode(db))
 	rg.POST("/register", Register(db))
 	rg.POST("/login", Login(db))

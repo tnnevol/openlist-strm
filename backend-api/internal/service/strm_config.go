@@ -1,14 +1,14 @@
 package service
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/tnnevol/openlist-strm/backend-api/internal/model"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/util"
+	"gorm.io/gorm"
 )
 
-func ListStrmConfigs(db *sql.DB, userID, serviceID, page, pageSize int) ([]*model.StrmConfig, int, error) {
+func ListStrmConfigs(db *gorm.DB, userID, serviceID, page, pageSize int) ([]*model.StrmConfig, int, error) {
 	var configs []*model.StrmConfig
 	var err error
 	if serviceID > 0 {
@@ -30,7 +30,7 @@ func ListStrmConfigs(db *sql.DB, userID, serviceID, page, pageSize int) ([]*mode
 	return paged, total, nil
 }
 
-func CopyStrmConfigs(db *sql.DB, ids []int) error {
+func CopyStrmConfigs(db *gorm.DB, ids []int) error {
 	for _, id := range ids {
 		cfg, err := model.GetStrmConfigByID(db, id)
 		if err != nil || cfg == nil {
@@ -48,18 +48,18 @@ func CopyStrmConfigs(db *sql.DB, ids []int) error {
 	return nil
 }
 
-func CreateStrmConfig(db *sql.DB, config *model.StrmConfig) error {
+func CreateStrmConfig(db *gorm.DB, config *model.StrmConfig) error {
 	return model.CreateStrmConfig(db, config)
 }
 
-func UpdateStrmConfig(db *sql.DB, config *model.StrmConfig) error {
+func UpdateStrmConfig(db *gorm.DB, config *model.StrmConfig) error {
 	return model.UpdateStrmConfig(db, config)
 }
 
-func DeleteStrmConfig(db *sql.DB, id int) error {
+func DeleteStrmConfig(db *gorm.DB, id int) error {
 	return model.DeleteStrmConfig(db, id)
 }
 
-func GetStrmConfigByID(db *sql.DB, id int) (*model.StrmConfig, error) {
+func GetStrmConfigByID(db *gorm.DB, id int) (*model.StrmConfig, error) {
 	return model.GetStrmConfigByID(db, id)
 }

@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"database/sql"
 	"strconv"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/tnnevol/openlist-strm/backend-api/internal/model"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/service"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type DictReq struct {
@@ -28,7 +28,7 @@ type DictPageResult struct {
 	PageSize int           `json:"pageSize"`
 }
 
-func RegisterDictRoutes(rg *gin.RouterGroup, db *sql.DB) {
+func RegisterDictRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 	rg.GET("/list", ListDicts(db))
 	rg.POST("/add", CreateDict(db))
 	rg.GET("/detail/:id", GetDict(db))
@@ -46,7 +46,7 @@ func RegisterDictRoutes(rg *gin.RouterGroup, db *sql.DB) {
 // @Param        dict  body  DictReq  true  "字典信息"
 // @Success      200   {object} middleware.Response[string]
 // @Router       /dict/add [post]
-func CreateDict(db *sql.DB) gin.HandlerFunc {
+func CreateDict(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req DictReq
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -84,7 +84,7 @@ func CreateDict(db *sql.DB) gin.HandlerFunc {
 // @Param        dict  body  DictReq true  "字典信息"
 // @Success      200   {object} middleware.Response[string]
 // @Router       /dict/update/{id} [put]
-func UpdateDict(db *sql.DB) gin.HandlerFunc {
+func UpdateDict(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, _ := strconv.Atoi(c.Param("id"))
 		var req DictReq
@@ -125,7 +125,7 @@ func UpdateDict(db *sql.DB) gin.HandlerFunc {
 // @Param        id   path  int  true  "字典ID"
 // @Success      200  {object} middleware.Response[string]
 // @Router       /dict/delete/{id} [delete]
-func DeleteDict(db *sql.DB) gin.HandlerFunc {
+func DeleteDict(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, _ := strconv.Atoi(c.Param("id"))
 		d, err := service.GetDictByID(db, id)
@@ -154,7 +154,7 @@ func DeleteDict(db *sql.DB) gin.HandlerFunc {
 // @Param        id   path  int  true  "字典ID"
 // @Success      200  {object} model.Dict
 // @Router       /dict/detail/{id} [get]
-func GetDict(db *sql.DB) gin.HandlerFunc {
+func GetDict(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, _ := strconv.Atoi(c.Param("id"))
 		d, err := service.GetDictByID(db, id)
@@ -177,7 +177,7 @@ func GetDict(db *sql.DB) gin.HandlerFunc {
 // @Param        parentId query    int     false  "父级ID"
 // @Success      200      {object} []model.Dict
 // @Router       /dict/list [get]
-func ListDicts(db *sql.DB) gin.HandlerFunc {
+func ListDicts(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dictType := c.Query("type")
 		parentIdStr := c.Query("parentId")

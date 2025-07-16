@@ -1,11 +1,11 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/tnnevol/openlist-strm/backend-api/internal/logger"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type UpdateMode string
@@ -16,139 +16,80 @@ const (
 )
 
 type StrmConfig struct {
-	ID               int
-	UserID           int
-	Name             string
-	AlistBasePath    string
-	StrmOutputPath   string
-	DownloadEnabled  bool
-	DownloadInterval int
-	UpdateMode       UpdateMode
-	ServiceID        int
-	IsUseBackupUrl   bool
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID               int        `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserID           int        `json:"userId"`
+	Name             string     `json:"name" gorm:"type:varchar(128);index"`
+	AlistBasePath    string     `json:"alistBasePath" gorm:"type:varchar(255)"`
+	StrmOutputPath   string     `json:"strmOutputPath" gorm:"type:varchar(255)"`
+	DownloadEnabled  bool       `json:"downloadEnabled"`
+	DownloadInterval int        `json:"downloadInterval"`
+	UpdateMode       UpdateMode `json:"updateMode" gorm:"type:varchar(32)"`
+	ServiceID        int        `json:"serviceId"`
+	IsUseBackupUrl   bool       `json:"isUseBackupUrl"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
 }
 
-// CreateStrmConfig 创建Strm配置
-func CreateStrmConfig(db *sql.DB, config *StrmConfig) error {
+func CreateStrmConfig(db *gorm.DB, config *StrmConfig) error {
 	logger.Info("[DB] CreateStrmConfig", zap.String("name", config.Name), zap.Int("service_id", config.ServiceID), zap.Int("user_id", config.UserID))
-
 	now := time.Now()
 	config.CreatedAt = now
 	config.UpdatedAt = now
-
-	_, err := db.Exec(`
-		INSERT INTO strm_config (user_id, name, alist_base_path, strm_output_path, download_enabled, download_interval, update_mode, service_id, is_use_backup_url, created_at, updated_at) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		config.UserID, config.Name, config.AlistBasePath, config.StrmOutputPath, config.DownloadEnabled, config.DownloadInterval, config.UpdateMode, config.ServiceID, config.IsUseBackupUrl, config.CreatedAt, config.UpdatedAt)
-
-	if err != nil {
+	if err := db.Create(config).Error; err != nil {
 		logger.Error("[DB] CreateStrmConfig error", zap.Error(err))
 		return err
 	}
-
 	return nil
 }
 
-// GetStrmConfigByID 根据ID获取Strm配置
-func GetStrmConfigByID(db *sql.DB, id int) (*StrmConfig, error) {
+func GetStrmConfigByID(db *gorm.DB, id int) (*StrmConfig, error) {
 	var config StrmConfig
-	err := db.QueryRow(`
-		SELECT id, user_id, name, alist_base_path, strm_output_path, download_enabled, download_interval, update_mode, service_id, is_use_backup_url, created_at, updated_at 
-		FROM strm_config WHERE id = ?`, id).
-		Scan(&config.ID, &config.UserID, &config.Name, &config.AlistBasePath, &config.StrmOutputPath, &config.DownloadEnabled, &config.DownloadInterval, &config.UpdateMode, &config.ServiceID, &config.IsUseBackupUrl, &config.CreatedAt, &config.UpdatedAt)
-
-	if err != nil {
+	if err := db.First(&config, id).Error; err != nil {
 		return nil, err
 	}
 	return &config, nil
 }
 
-// GetStrmConfigsByServiceID 根据服务ID获取所有Strm配置
-func GetStrmConfigsByServiceID(db *sql.DB, serviceID int) ([]*StrmConfig, error) {
-	rows, err := db.Query(`
-		SELECT id, user_id, name, alist_base_path, strm_output_path, download_enabled, download_interval, update_mode, service_id, is_use_backup_url, created_at, updated_at 
-		FROM strm_config WHERE service_id = ? ORDER BY created_at DESC`, serviceID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+func GetStrmConfigsByServiceID(db *gorm.DB, serviceID int) ([]*StrmConfig, error) {
 	var configs []*StrmConfig
-	for rows.Next() {
-		var config StrmConfig
-		err := rows.Scan(&config.ID, &config.UserID, &config.Name, &config.AlistBasePath, &config.StrmOutputPath, &config.DownloadEnabled, &config.DownloadInterval, &config.UpdateMode, &config.ServiceID, &config.IsUseBackupUrl, &config.CreatedAt, &config.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		configs = append(configs, &config)
-	}
-
-	return configs, nil
-}
-
-// GetAllStrmConfigs 获取所有Strm配置
-func GetAllStrmConfigs(db *sql.DB) ([]*StrmConfig, error) {
-	rows, err := db.Query(`SELECT id, user_id, name, alist_base_path, strm_output_path, download_enabled, download_interval, update_mode, service_id, is_use_backup_url, created_at, updated_at FROM strm_config ORDER BY created_at DESC`)
-	if err != nil {
+	if err := db.Where("service_id = ?", serviceID).Order("created_at DESC").Find(&configs).Error; err != nil {
 		return nil, err
-	}
-	defer rows.Close()
-	var configs []*StrmConfig
-	for rows.Next() {
-		var config StrmConfig
-		err := rows.Scan(&config.ID, &config.UserID, &config.Name, &config.AlistBasePath, &config.StrmOutputPath, &config.DownloadEnabled, &config.DownloadInterval, &config.UpdateMode, &config.ServiceID, &config.IsUseBackupUrl, &config.CreatedAt, &config.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		configs = append(configs, &config)
 	}
 	return configs, nil
 }
 
-// UpdateStrmConfig 更新Strm配置
-func UpdateStrmConfig(db *sql.DB, config *StrmConfig) error {
+func GetAllStrmConfigs(db *gorm.DB) ([]*StrmConfig, error) {
+	var configs []*StrmConfig
+	if err := db.Order("created_at DESC").Find(&configs).Error; err != nil {
+		return nil, err
+	}
+	return configs, nil
+}
+
+func UpdateStrmConfig(db *gorm.DB, config *StrmConfig) error {
 	logger.Info("[DB] UpdateStrmConfig", zap.Int("id", config.ID))
-
 	config.UpdatedAt = time.Now()
-
-	_, err := db.Exec(`
-		UPDATE strm_config 
-		SET user_id = ?, name = ?, alist_base_path = ?, strm_output_path = ?, download_enabled = ?, download_interval = ?, update_mode = ?, is_use_backup_url = ?, updated_at = ? 
-		WHERE id = ?`,
-		config.UserID, config.Name, config.AlistBasePath, config.StrmOutputPath, config.DownloadEnabled, config.DownloadInterval, config.UpdateMode, config.IsUseBackupUrl, config.UpdatedAt, config.ID)
-
-	if err != nil {
+	if err := db.Model(&StrmConfig{}).Where("id = ?", config.ID).Updates(config).Error; err != nil {
 		logger.Error("[DB] UpdateStrmConfig error", zap.Error(err))
 		return err
 	}
-
 	return nil
 }
 
-// DeleteStrmConfig 删除Strm配置
-func DeleteStrmConfig(db *sql.DB, id int) error {
+func DeleteStrmConfig(db *gorm.DB, id int) error {
 	logger.Info("[DB] DeleteStrmConfig", zap.Int("id", id))
-	
-	_, err := db.Exec("DELETE FROM strm_config WHERE id = ?", id)
-	if err != nil {
+	if err := db.Delete(&StrmConfig{}, id).Error; err != nil {
 		logger.Error("[DB] DeleteStrmConfig error", zap.Error(err))
 		return err
 	}
-	
 	return nil
 }
 
-// ToggleStrmConfigDownloadEnabled 切换下载启用状态
-func ToggleStrmConfigDownloadEnabled(db *sql.DB, id int, enabled bool) error {
+func ToggleStrmConfigDownloadEnabled(db *gorm.DB, id int, enabled bool) error {
 	logger.Info("[DB] ToggleStrmConfigDownloadEnabled", zap.Int("id", id), zap.Bool("enabled", enabled))
-	
-	_, err := db.Exec("UPDATE strm_config SET download_enabled = ?, updated_at = ? WHERE id = ?", enabled, time.Now(), id)
-	if err != nil {
+	if err := db.Model(&StrmConfig{}).Where("id = ?", id).Updates(map[string]interface{}{"download_enabled": enabled, "updated_at": time.Now()}).Error; err != nil {
 		logger.Error("[DB] ToggleStrmConfigDownloadEnabled error", zap.Error(err))
 		return err
 	}
-	
 	return nil
 } 

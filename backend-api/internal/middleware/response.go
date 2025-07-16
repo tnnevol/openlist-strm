@@ -14,6 +14,7 @@ import (
 	"github.com/tnnevol/openlist-strm/backend-api/internal/logger"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/service"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // 统一错误码定义
@@ -43,7 +44,7 @@ var WhiteList = map[string]bool{
 	"/swagger/": true,
 }
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
@@ -144,9 +145,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				}
 			}
 			if username != "" {
-				db, err := service.GetDB()
-				if err == nil {
-					user, err := service.GetUserByUsername(db, username)
+				user, err := service.GetUserByUsername(db, username)
 					if err != nil {
 						logger.Info("[AuthMiddleware] 查找用户失败，拒绝", zap.String("path", path), zap.Error(err))
 						Unauthorized(c, "token无效，请重新登录")
@@ -157,8 +156,8 @@ func AuthMiddleware() gin.HandlerFunc {
 					// 安全地打印日志，避免空指针异常
 					var tokenInvalidBeforeStr string
 					var validStr string
-					if user != nil && user.TokenInvalidBefore.Valid {
-						tokenInvalidBeforeStr = fmt.Sprintf("%d", user.TokenInvalidBefore.Time.Unix())
+					if user != nil && user.TokenInvalidBefore != nil {
+						tokenInvalidBeforeStr = fmt.Sprintf("%d", user.TokenInvalidBefore.Unix())
 						validStr = "true"
 					} else {
 						tokenInvalidBeforeStr = "nil"
@@ -173,13 +172,13 @@ func AuthMiddleware() gin.HandlerFunc {
 						return
 					}
 					
-					if !user.TokenInvalidBefore.Valid {
+					if user.TokenInvalidBefore == nil {
 						// token_invalid_before 无效，说明没有强制失效要求，直接通过
 						c.Set("claims", claims)
 						c.Next()
 						return
 					}
-					if int64(iat) < user.TokenInvalidBefore.Time.Unix() {
+					if int64(iat) < user.TokenInvalidBefore.Unix() {
 						logger.Info("[AuthMiddleware] token签发时间早于token_invalid_before，拒绝", zap.String("path", path))
 						logger.Info("[AuthMiddleware] 准备返回TokenExpired，code=40101")
 						TokenExpired(c, "token已过期")
@@ -187,7 +186,6 @@ func AuthMiddleware() gin.HandlerFunc {
 						c.Abort()
 						return
 					}
-				}
 			}
 		}
 

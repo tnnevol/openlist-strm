@@ -1,8 +1,6 @@
 package app
 
 import (
-	"database/sql"
-
 	"github.com/gin-gonic/gin"
 	_ "github.com/tnnevol/openlist-strm/backend-api/docs"
 
@@ -11,12 +9,13 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/controller"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/middleware"
+	"gorm.io/gorm"
 )
 
-func RegisterRouter(db *sql.DB) *gin.Engine {
+func RegisterRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 	// 全局注册AuthMiddleware
-	r.Use(middleware.AuthMiddleware())
+	r.Use(middleware.AuthMiddleware(db))
 
 	userGroup := r.Group("/user")
 	controller.RegisterUserRoutes(userGroup, db)

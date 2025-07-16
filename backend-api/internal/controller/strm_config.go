@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"database/sql"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +10,7 @@ import (
 	"github.com/tnnevol/openlist-strm/backend-api/internal/service"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/util"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // 删除本地 extractUserIDFromClaims 实现，全部调用 util.ExtractUserIDFromClaims
@@ -44,7 +44,7 @@ type StrmConfigCopyReq struct {
 // @Param        pageSize query int false "每页条数(默认10)"
 // @Success      200 {object} middleware.Response[model.PageResult[model.StrmConfigResponse]]
 // @Router       /strm/config/list [get]
-func ListStrmConfig(db *sql.DB) gin.HandlerFunc {
+func ListStrmConfig(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, ok := c.Get("claims")
 		if !ok {
@@ -98,7 +98,7 @@ func ListStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Param body body StrmConfigCopyReq true "要复制的id列表"
 // @Success 200 {object} middleware.Response[string] // data为操作结果描述
 // @Router /strm/config/copy [post]
-func CopyStrmConfig(db *sql.DB) gin.HandlerFunc {
+func CopyStrmConfig(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req StrmConfigCopyReq
 		if err := c.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 {
@@ -124,7 +124,7 @@ func CopyStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Param        body body StrmConfigReq true "配置内容"
 // @Success      200 {object} middleware.Response[string]
 // @Router       /strm/config/add [post]
-func CreateStrmConfig(db *sql.DB) gin.HandlerFunc {
+func CreateStrmConfig(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req StrmConfigReq
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -176,7 +176,7 @@ func CreateStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Param        body body StrmConfigReq true "配置内容"
 // @Success      200 {object} middleware.Response[string]
 // @Router       /strm/config/update/{id} [put]
-func UpdateStrmConfig(db *sql.DB) gin.HandlerFunc {
+func UpdateStrmConfig(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, _ := strconv.Atoi(c.Param("id"))
 		var req StrmConfigReq
@@ -224,7 +224,7 @@ func UpdateStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Param        id path int true "配置ID"
 // @Success      200 {object} middleware.Response[string]
 // @Router       /strm/config/delete/{id} [delete]
-func DeleteStrmConfig(db *sql.DB) gin.HandlerFunc {
+func DeleteStrmConfig(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, _ := strconv.Atoi(c.Param("id"))
 		claims, ok := c.Get("claims")
@@ -257,7 +257,7 @@ func DeleteStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Param        id path int true "配置ID"
 // @Success      200 {object} middleware.Response[model.StrmConfigResponse]
 // @Router       /strm/config/detail/{id} [get]
-func GetStrmConfig(db *sql.DB) gin.HandlerFunc {
+func GetStrmConfig(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, _ := strconv.Atoi(c.Param("id"))
 		claims, ok := c.Get("claims")
@@ -289,7 +289,7 @@ func GetStrmConfig(db *sql.DB) gin.HandlerFunc {
 }
 
 // RegisterStrmConfigRoutes 统一注册/strm/config相关接口
-func RegisterStrmConfigRoutes(rg *gin.RouterGroup, db *sql.DB) {
+func RegisterStrmConfigRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 	rg.GET("/config/list", ListStrmConfig(db))
 	rg.POST("/config/add", CreateStrmConfig(db))
 	rg.GET("/config/detail/:id", GetStrmConfig(db))

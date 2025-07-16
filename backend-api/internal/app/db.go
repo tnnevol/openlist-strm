@@ -1,14 +1,13 @@
 package app
 
 import (
-	"database/sql"
-
 	"github.com/tnnevol/openlist-strm/backend-api/internal/logger"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/model"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
-func InitDatabase() (*sql.DB, error) {
+func InitDatabase() (*gorm.DB, error) {
 	db, err := model.InitDB()
 	if err != nil {
 		logger.Error("InitDB failed", zap.Error(err))

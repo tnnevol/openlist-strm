@@ -1,11 +1,11 @@
 package model
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/tnnevol/openlist-strm/backend-api/internal/logger"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type TaskMode string
@@ -16,177 +16,95 @@ const (
 )
 
 type StrmTask struct {
-	ID            int
-	UserID        int
-	Name          string
-	ScheduledTime time.Time
-	TaskMode      TaskMode
-	Enabled       bool
-	ServiceID     int
-	ConfigID      int
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID            int       `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserID        int       `json:"userId"`
+	Name          string    `json:"name" gorm:"type:varchar(128);index"`
+	ScheduledTime time.Time `json:"scheduledTime"`
+	TaskMode      TaskMode  `json:"taskMode" gorm:"type:varchar(32)"`
+	Enabled       bool      `json:"enabled"`
+	ServiceID     int       `json:"serviceId"`
+	ConfigID      int       `json:"configId"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
-// CreateStrmTask 创建Strm任务
-func CreateStrmTask(db *sql.DB, task *StrmTask) error {
+func CreateStrmTask(db *gorm.DB, task *StrmTask) error {
 	logger.Info("[DB] CreateStrmTask", zap.String("name", task.Name), zap.Int("service_id", task.ServiceID), zap.Int("config_id", task.ConfigID), zap.Int("user_id", task.UserID))
-	
 	now := time.Now()
 	task.CreatedAt = now
 	task.UpdatedAt = now
-	
-	_, err := db.Exec(`
-		INSERT INTO strm_task (user_id, name, scheduled_time, task_mode, enabled, service_id, config_id, created_at, updated_at) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		task.UserID, task.Name, task.ScheduledTime, task.TaskMode, task.Enabled, task.ServiceID, task.ConfigID, task.CreatedAt, task.UpdatedAt)
-	
-	if err != nil {
+	if err := db.Create(task).Error; err != nil {
 		logger.Error("[DB] CreateStrmTask error", zap.Error(err))
 		return err
 	}
-	
 	return nil
 }
 
-// GetStrmTaskByID 根据ID获取Strm任务
-func GetStrmTaskByID(db *sql.DB, id int) (*StrmTask, error) {
+func GetStrmTaskByID(db *gorm.DB, id int) (*StrmTask, error) {
 	var task StrmTask
-	err := db.QueryRow(`
-		SELECT id, user_id, name, scheduled_time, task_mode, enabled, service_id, config_id, created_at, updated_at 
-		FROM strm_task WHERE id = ?`, id).
-		Scan(&task.ID, &task.UserID, &task.Name, &task.ScheduledTime, &task.TaskMode, &task.Enabled, &task.ServiceID, &task.ConfigID, &task.CreatedAt, &task.UpdatedAt)
-	
-	if err != nil {
+	if err := db.First(&task, id).Error; err != nil {
 		return nil, err
 	}
 	return &task, nil
 }
 
-// GetStrmTasksByServiceID 根据服务ID获取所有Strm任务
-func GetStrmTasksByServiceID(db *sql.DB, serviceID int) ([]*StrmTask, error) {
-	rows, err := db.Query(`
-		SELECT id, user_id, name, scheduled_time, task_mode, enabled, service_id, config_id, created_at, updated_at 
-		FROM strm_task WHERE service_id = ? ORDER BY scheduled_time ASC`, serviceID)
-	if err != nil {
+func GetStrmTasksByServiceID(db *gorm.DB, serviceID int) ([]*StrmTask, error) {
+	var tasks []*StrmTask
+	if err := db.Where("service_id = ?", serviceID).Order("scheduled_time ASC").Find(&tasks).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	
-	var tasks []*StrmTask
-	for rows.Next() {
-		var task StrmTask
-		err := rows.Scan(&task.ID, &task.UserID, &task.Name, &task.ScheduledTime, &task.TaskMode, &task.Enabled, &task.ServiceID, &task.ConfigID, &task.CreatedAt, &task.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, &task)
-	}
-	
 	return tasks, nil
 }
 
-// GetStrmTasksByConfigID 根据配置ID获取所有Strm任务
-func GetStrmTasksByConfigID(db *sql.DB, configID int) ([]*StrmTask, error) {
-	rows, err := db.Query(`
-		SELECT id, user_id, name, scheduled_time, task_mode, enabled, service_id, config_id, created_at, updated_at 
-		FROM strm_task WHERE config_id = ? ORDER BY scheduled_time ASC`, configID)
-	if err != nil {
+func GetStrmTasksByConfigID(db *gorm.DB, configID int) ([]*StrmTask, error) {
+	var tasks []*StrmTask
+	if err := db.Where("config_id = ?", configID).Order("scheduled_time ASC").Find(&tasks).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	
-	var tasks []*StrmTask
-	for rows.Next() {
-		var task StrmTask
-		err := rows.Scan(&task.ID, &task.UserID, &task.Name, &task.ScheduledTime, &task.TaskMode, &task.Enabled, &task.ServiceID, &task.ConfigID, &task.CreatedAt, &task.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, &task)
-	}
-	
 	return tasks, nil
 }
 
-// GetEnabledStrmTasks 获取所有启用的任务
-func GetEnabledStrmTasks(db *sql.DB) ([]*StrmTask, error) {
-	rows, err := db.Query(`
-		SELECT id, user_id, name, scheduled_time, task_mode, enabled, service_id, config_id, created_at, updated_at 
-		FROM strm_task WHERE enabled = 1 ORDER BY scheduled_time ASC`)
-	if err != nil {
+func GetEnabledStrmTasks(db *gorm.DB) ([]*StrmTask, error) {
+	var tasks []*StrmTask
+	if err := db.Where("enabled = ?", true).Order("scheduled_time ASC").Find(&tasks).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	
-	var tasks []*StrmTask
-	for rows.Next() {
-		var task StrmTask
-		err := rows.Scan(&task.ID, &task.UserID, &task.Name, &task.ScheduledTime, &task.TaskMode, &task.Enabled, &task.ServiceID, &task.ConfigID, &task.CreatedAt, &task.UpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, &task)
-	}
-	
 	return tasks, nil
 }
 
-// UpdateStrmTask 更新Strm任务
-func UpdateStrmTask(db *sql.DB, task *StrmTask) error {
+func UpdateStrmTask(db *gorm.DB, task *StrmTask) error {
 	logger.Info("[DB] UpdateStrmTask", zap.Int("id", task.ID))
-	
 	task.UpdatedAt = time.Now()
-	
-	_, err := db.Exec(`
-		UPDATE strm_task 
-		SET user_id = ?, name = ?, scheduled_time = ?, task_mode = ?, enabled = ?, service_id = ?, config_id = ?, updated_at = ? 
-		WHERE id = ?`,
-		task.UserID, task.Name, task.ScheduledTime, task.TaskMode, task.Enabled, task.ServiceID, task.ConfigID, task.UpdatedAt, task.ID)
-	
-	if err != nil {
+	if err := db.Model(&StrmTask{}).Where("id = ?", task.ID).Updates(task).Error; err != nil {
 		logger.Error("[DB] UpdateStrmTask error", zap.Error(err))
 		return err
 	}
-	
 	return nil
 }
 
-// DeleteStrmTask 删除Strm任务
-func DeleteStrmTask(db *sql.DB, id int) error {
+func DeleteStrmTask(db *gorm.DB, id int) error {
 	logger.Info("[DB] DeleteStrmTask", zap.Int("id", id))
-	
-	_, err := db.Exec("DELETE FROM strm_task WHERE id = ?", id)
-	if err != nil {
+	if err := db.Delete(&StrmTask{}, id).Error; err != nil {
 		logger.Error("[DB] DeleteStrmTask error", zap.Error(err))
 		return err
 	}
-	
 	return nil
 }
 
-// ToggleStrmTaskEnabled 切换任务启用状态
-func ToggleStrmTaskEnabled(db *sql.DB, id int, enabled bool) error {
+func ToggleStrmTaskEnabled(db *gorm.DB, id int, enabled bool) error {
 	logger.Info("[DB] ToggleStrmTaskEnabled", zap.Int("id", id), zap.Bool("enabled", enabled))
-	
-	_, err := db.Exec("UPDATE strm_task SET enabled = ?, updated_at = ? WHERE id = ?", enabled, time.Now(), id)
-	if err != nil {
+	if err := db.Model(&StrmTask{}).Where("id = ?", id).Updates(map[string]interface{}{"enabled": enabled, "updated_at": time.Now()}).Error; err != nil {
 		logger.Error("[DB] ToggleStrmTaskEnabled error", zap.Error(err))
 		return err
 	}
-	
 	return nil
 }
 
-// UpdateStrmTaskScheduledTime 更新任务调度时间
-func UpdateStrmTaskScheduledTime(db *sql.DB, id int, scheduledTime time.Time) error {
+func UpdateStrmTaskScheduledTime(db *gorm.DB, id int, scheduledTime time.Time) error {
 	logger.Info("[DB] UpdateStrmTaskScheduledTime", zap.Int("id", id), zap.Time("scheduled_time", scheduledTime))
-	
-	_, err := db.Exec("UPDATE strm_task SET scheduled_time = ?, updated_at = ? WHERE id = ?", scheduledTime, time.Now(), id)
-	if err != nil {
+	if err := db.Model(&StrmTask{}).Where("id = ?", id).Updates(map[string]interface{}{"scheduled_time": scheduledTime, "updated_at": time.Now()}).Error; err != nil {
 		logger.Error("[DB] UpdateStrmTaskScheduledTime error", zap.Error(err))
 		return err
 	}
-	
 	return nil
 } 

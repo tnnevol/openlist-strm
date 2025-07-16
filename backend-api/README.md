@@ -1,8 +1,13 @@
 # Backend API (Root Level)
 
+⚠️ **重要提示：本项目数据库已全面切换为 [GORM](https://gorm.io/zh_CN/)。所有表结构自动迁移、ORM操作均基于 GORM，原 go-sqlite3 相关代码已废弃。请确保开发环境已正确安装 GORM 依赖。**
+
 基于 Gin 框架的 Go 语言后端服务
 
 ## 开发
+
+- 本项目数据库层已使用 GORM 进行重构，所有表结构自动迁移、数据操作均通过 GORM 实现。
+- GORM 官方文档：[https://gorm.io/zh_CN/](https://gorm.io/zh_CN/)
 
 ```bash
 # 启动开发服务器

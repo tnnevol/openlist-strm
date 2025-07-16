@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"database/sql"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +10,7 @@ import (
 	"github.com/tnnevol/openlist-strm/backend-api/internal/service"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/util"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type OpenListServiceReq struct {
@@ -56,7 +56,7 @@ func convertToResponseList(services []*model.OpenListService) []*model.OpenListS
 // @Param        pageSize query int false "每页条数(默认10)"
 // @Success      200 {object} middleware.Response[model.PageResult[model.OpenListServiceResponse]]
 // @Router       /openlist/list [get]
-func ListOpenListService(db *sql.DB) gin.HandlerFunc {
+func ListOpenListService(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /openlist/service [GET] called - 请求入口")
 		claims, ok := c.Get("claims")
@@ -112,7 +112,7 @@ func ListOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Param        body body OpenListServiceReq true "服务信息"
 // @Success      200 {object} middleware.Response[string]
 // @Router       /openlist/add [post]
-func CreateOpenListService(db *sql.DB) gin.HandlerFunc {
+func CreateOpenListService(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /openlist/service [POST] called - 请求入口")
 		var req OpenListServiceReq
@@ -165,7 +165,7 @@ func CreateOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Param        id path int true "服务ID"
 // @Success      200 {object} middleware.Response[model.OpenListServiceResponse]
 // @Router       /openlist/detail/{id} [get]
-func GetOpenListService(db *sql.DB) gin.HandlerFunc {
+func GetOpenListService(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /openlist/service/:id [GET] called - 请求入口")
 		idStr := c.Param("id")
@@ -209,7 +209,7 @@ func GetOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Param        body body OpenListServiceReq true "服务信息"
 // @Success      200 {object} middleware.Response[string]
 // @Router       /openlist/update/{id} [put]
-func UpdateOpenListService(db *sql.DB) gin.HandlerFunc {
+func UpdateOpenListService(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /openlist/service/:id [PUT] called - 请求入口")
 		idStr := c.Param("id")
@@ -267,7 +267,7 @@ func UpdateOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Param        id path int true "服务ID"
 // @Success      200 {object} middleware.Response[string]
 // @Router       /openlist/delete/{id} [delete]
-func DeleteOpenListService(db *sql.DB) gin.HandlerFunc {
+func DeleteOpenListService(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger.Info("[API] /openlist/service/:id [DELETE] called - 请求入口")
 		idStr := c.Param("id")
@@ -307,7 +307,7 @@ func DeleteOpenListService(db *sql.DB) gin.HandlerFunc {
 }
 
 // RegisterOpenListServiceRoutes 统一注册/openlist/service相关接口
-func RegisterOpenListServiceRoutes(rg *gin.RouterGroup, db *sql.DB) {
+func RegisterOpenListServiceRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 	rg.GET("/list", ListOpenListService(db))
 	rg.POST("/add", CreateOpenListService(db))
 	rg.GET("/detail/:id", GetOpenListService(db))
