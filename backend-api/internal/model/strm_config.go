@@ -152,21 +152,3 @@ func ToggleStrmConfigDownloadEnabled(db *sql.DB, id int, enabled bool) error {
 	
 	return nil
 } 
-
-// 新增用于接口返回的小驼峰结构体
-// swagger:model
-// 用于 StrmConfigPageResult 的 list 元素
-//
-type StrmConfigResponse struct {
-	ID               int       `json:"id"`
-	Name             string    `json:"name"`
-	AlistBasePath    string    `json:"alistBasePath"`
-	StrmOutputPath   string    `json:"strmOutputPath"`
-	DownloadEnabled  bool      `json:"downloadEnabled"`
-	DownloadInterval int       `json:"downloadInterval"`
-	UpdateMode       string    `json:"updateMode"`
-	ServiceID        int       `json:"serviceId"`
-	IsUseBackupUrl   bool      `json:"isUseBackupUrl"`
-	CreatedAt        string    `json:"createdAt"`
-	UpdatedAt        string    `json:"updatedAt"`
-} 

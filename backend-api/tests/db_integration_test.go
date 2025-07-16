@@ -105,7 +105,7 @@ func TestOpenListServiceCRUD(t *testing.T) {
 
 	// 测试创建服务
 	service := &model.OpenListService{
-		ServiceName: "测试服务",
+		Name: "测试服务",
 		Account:     "test_account",
 		Token:       "test_token",
 		ServiceUrl:  "http://localhost:5244",
@@ -129,7 +129,7 @@ func TestOpenListServiceCRUD(t *testing.T) {
 
 	// 测试更新服务
 	service = services[0]
-	service.ServiceName = "更新后的服务名"
+	service.Name = "更新后的服务名"
 	err = model.UpdateOpenListService(db, service)
 	if err != nil {
 		t.Fatalf("更新服务失败: %v", err)
@@ -164,7 +164,7 @@ func TestStrmConfigCRUD(t *testing.T) {
 
 	// 测试创建配置
 	config := &model.StrmConfig{
-		ConfigName:       "新配置",
+		Name:       "新配置",
 		AlistBasePath:    "/new/path",
 		StrmOutputPath:   "/new/output",
 		DownloadEnabled:  true,
@@ -189,7 +189,7 @@ func TestStrmConfigCRUD(t *testing.T) {
 
 	// 测试更新配置
 	config = configs[0]
-	config.ConfigName = "更新后的配置名"
+	config.Name = "更新后的配置名"
 	err = model.UpdateStrmConfig(db, config)
 	if err != nil {
 		t.Fatalf("更新配置失败: %v", err)
@@ -224,7 +224,7 @@ func TestStrmTaskCRUD(t *testing.T) {
 
 	// 测试创建任务
 	task := &model.StrmTask{
-		TaskName:      "新任务",
+		Name:      "新任务",
 		ScheduledTime: time.Now().Add(2 * time.Hour),
 		TaskMode:      model.TaskModeCheck,
 		Enabled:       true,
@@ -248,7 +248,7 @@ func TestStrmTaskCRUD(t *testing.T) {
 
 	// 测试更新任务
 	task = tasks[0]
-	task.TaskName = "更新后的任务名"
+	task.Name = "更新后的任务名"
 	err = model.UpdateStrmTask(db, task)
 	if err != nil {
 		t.Fatalf("更新任务失败: %v", err)
@@ -289,7 +289,7 @@ func TestLogRecordCRUD(t *testing.T) {
 
 	// 测试创建日志记录
 	logRecord := &model.LogRecord{
-		LogName:    model.LogNameCheck,
+		Name:    model.LogNameCheck,
 		LogPath:    "/logs/new_test.log",
 		TaskStatus: model.TaskStatusRunning,
 		TaskID:     1,

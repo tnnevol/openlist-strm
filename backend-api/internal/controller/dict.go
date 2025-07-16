@@ -44,7 +44,7 @@ func RegisterDictRoutes(rg *gin.RouterGroup, db *sql.DB) {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {{accessToken}}"
 // @Param        dict  body  DictReq  true  "字典信息"
-// @Success      200   {object} model.Response
+// @Success      200   {object} middleware.Response[string]
 // @Router       /dict/add [post]
 func CreateDict(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -82,7 +82,7 @@ func CreateDict(db *sql.DB) gin.HandlerFunc {
 // @Param        Authorization header string true "Bearer {{accessToken}}"
 // @Param        id    path  int     true  "字典ID"
 // @Param        dict  body  DictReq true  "字典信息"
-// @Success      200   {object} model.Response
+// @Success      200   {object} middleware.Response[string]
 // @Router       /dict/update/{id} [put]
 func UpdateDict(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -123,7 +123,7 @@ func UpdateDict(db *sql.DB) gin.HandlerFunc {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {{accessToken}}"
 // @Param        id   path  int  true  "字典ID"
-// @Success      200  {object} model.Response
+// @Success      200  {object} middleware.Response[string]
 // @Router       /dict/delete/{id} [delete]
 func DeleteDict(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

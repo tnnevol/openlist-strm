@@ -25,7 +25,7 @@ import (
 // @Accept       json
 // @Produce      json
 // @Param        email  body  object{email=string}  true  "邮箱"
-// @Success      200    {object}  model.Response
+// @Success      200    {object}  middleware.Response[string]
 // @Router       /user/send-code [post]
 func SendCode(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -69,7 +69,7 @@ func SendCode(db *sql.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Param        register body object{email=string,username=string,password=string,confirmPassword=string,code=string} true "注册信息"
-// @Success      200    {object}  model.Response
+// @Success      200    {object}  middleware.Response[string]
 // @Router       /user/register [post]
 func Register(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -161,7 +161,7 @@ func Register(db *sql.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Param        login body object{username=string,password=string} true "登录信息"
-// @Success      200    {object}  model.Response
+// @Success      200    {object}  middleware.Response[string]
 // @Router       /user/login [post]
 func Login(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -231,7 +231,7 @@ func Login(db *sql.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Param        email  body  object{email=string}  true  "邮箱"
-// @Success      200    {object}  model.Response
+// @Success      200    {object}  middleware.Response[string]
 // @Router       /user/forgot-password/send-code [post]
 func ForgotPasswordSendCode(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -294,7 +294,7 @@ func ForgotPasswordSendCode(db *sql.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Param        reset body object{email=string,code=string,newPassword=string,confirmPassword=string} true "重置信息"
-// @Success      200    {object}  model.Response
+// @Success      200    {object}  middleware.Response[string]
 // @Router       /user/forgot-password/reset [post]
 func ForgotPasswordReset(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -401,7 +401,7 @@ func ForgotPasswordReset(db *sql.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Param        Authorization header string true "Bearer {token}"
-// @Success      200    {object}  model.Response
+// @Success      200    {object}  middleware.Response[string]
 // @Router       /user/logout [post]
 func Logout(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -549,6 +549,11 @@ func GenerateExpiredToken(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+type TokenBlacklistStatusResponse struct {
+	BlacklistSize int `json:"blacklistSize"`
+	Timestamp     int64 `json:"timestamp"`
+}
+
 // TokenBlacklistStatus godoc
 // @Summary      获取Token黑名单状态
 // @Description  获取当前token黑名单的状态信息（仅用于监控）
@@ -556,7 +561,7 @@ func GenerateExpiredToken(db *sql.DB) gin.HandlerFunc {
 // @Accept       json
 // @Produce      json
 // @Param        Authorization header string true "Bearer {token}"
-// @Success      200    {object}  model.Response{data=object{blacklistSize=int}}
+// @Success      200    {object}  middleware.Response[TokenBlacklistStatusResponse]
 // @Router       /user/token-blacklist-status [get]
 func TokenBlacklistStatus(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -568,9 +573,9 @@ func TokenBlacklistStatus(db *sql.DB) gin.HandlerFunc {
 		
 		logger.Info("[API] /user/token-blacklist-status 获取状态", zap.Int("blacklistSize", blacklistSize))
 		
-		middleware.Success(c, gin.H{
-			"blacklistSize": blacklistSize,
-			"timestamp":     time.Now().Unix(),
+		middleware.Success(c, TokenBlacklistStatusResponse{
+			BlacklistSize: blacklistSize,
+			Timestamp:     time.Now().Unix(),
 		})
 	}
 }
@@ -582,7 +587,7 @@ func TokenBlacklistStatus(db *sql.DB) gin.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer {token}"
-// @Success 200 {object} model.Response{data=model.UserInfoResponse}
+// @Success 200 {object} middleware.Response[model.UserInfoResponse]
 // @Router /user/info [get]
 func UserInfo(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

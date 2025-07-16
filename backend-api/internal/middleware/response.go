@@ -28,10 +28,10 @@ const (
 )
 
 // Response 统一响应结构
-type Response struct {
+type Response[T any] struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Data    T `json:"data,omitempty"`
 }
 
 var WhiteList = map[string]bool{
@@ -198,16 +198,12 @@ func AuthMiddleware() gin.HandlerFunc {
 
 // Success 成功响应
 func Success(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, Response{
-		Code:    CodeSuccess,
-		Message: "success",
-		Data:    data,
-	})
+	SuccessWithMessage(c, "success", data)
 }
 
 // SuccessWithMessage 带自定义消息的成功响应
 func SuccessWithMessage(c *gin.Context, message string, data interface{}) {
-	c.JSON(http.StatusOK, Response{
+	c.JSON(http.StatusOK, Response[any]{
 		Code:    CodeSuccess,
 		Message: message,
 		Data:    data,
@@ -216,7 +212,7 @@ func SuccessWithMessage(c *gin.Context, message string, data interface{}) {
 
 // Error 错误响应
 func Error(c *gin.Context, code int, message string) {
-	c.JSON(http.StatusOK, Response{
+	c.JSON(http.StatusOK, Response[any]{
 		Code:    code,
 		Message: message,
 	})
@@ -234,7 +230,7 @@ func Unauthorized(c *gin.Context, message string) {
 
 // TokenExpired token过期错误
 func TokenExpired(c *gin.Context, message string) {
-	c.JSON(http.StatusOK, Response{
+	c.JSON(http.StatusOK, Response[any]{
 		Code:    CodeTokenExpired,
 		Message: message,
 	})

@@ -19,7 +19,7 @@ type OpenListServiceReq struct {
 	Token       string `json:"token" binding:"required"`
 	ServiceUrl  string `json:"serviceUrl" binding:"required"`
 	BackupUrl   string `json:"backupUrl"`
-	Enabled     bool   `json:"enabled"`
+	Enabled     model.Enabled `json:"enabled"` // 支持字符串或数字
 }
 
 // convertToResponse 将 OpenListService 转换为 OpenListServiceResponse
@@ -31,7 +31,7 @@ func convertToResponse(service *model.OpenListService) *model.OpenListServiceRes
 		Token:       service.Token,
 		ServiceUrl:  service.ServiceUrl,
 		BackupUrl:   service.BackupUrl,
-		Enabled:     service.Enabled,
+		Enabled:     model.Enabled(strconv.Itoa(util.Bool2Int(service.Enabled))),
 		UpdatedAt:   service.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
@@ -54,7 +54,7 @@ func convertToResponseList(services []*model.OpenListService) []*model.OpenListS
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        page query int false "页码(默认1)"
 // @Param        pageSize query int false "每页条数(默认10)"
-// @Success      200 {object} model.Response{data=model.OpenListServicePageResult}
+// @Success      200 {object} middleware.Response[model.PageResult[model.OpenListServiceResponse]]
 // @Router       /openlist/list [get]
 func ListOpenListService(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -92,7 +92,7 @@ func ListOpenListService(db *sql.DB) gin.HandlerFunc {
 			}
 		}
 		logger.Info("[API] /openlist/service [GET] 查询成功", zap.Int("user_id", userID), zap.Int("count", len(services)), zap.Int("page", page), zap.Int("pageSize", pageSize))
-		result := model.OpenListServicePageResult{
+		result := model.PageResult[model.OpenListServiceResponse]{
 			List: paged,
 			Total: total,
 			Page: page,
@@ -110,7 +110,7 @@ func ListOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        body body OpenListServiceReq true "服务信息"
-// @Success      200 {object} model.Response
+// @Success      200 {object} middleware.Response[string]
 // @Router       /openlist/add [post]
 func CreateOpenListService(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -134,13 +134,14 @@ func CreateOpenListService(db *sql.DB) gin.HandlerFunc {
 			middleware.Unauthorized(c, "用户信息无效")
 			return
 		}
+		enabledBool := util.ParseEnabled(req.Enabled)
 		serviceObj := &model.OpenListService{
 			Name: req.Name,
 			Account: req.Account,
 			Token: req.Token,
 			ServiceUrl: req.ServiceUrl,
 			BackupUrl: req.BackupUrl,
-			Enabled: req.Enabled,
+			Enabled: enabledBool,
 			UserID: userID,
 		}
 		err := service.CreateOpenListService(db, serviceObj)
@@ -162,7 +163,7 @@ func CreateOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        id path int true "服务ID"
-// @Success      200 {object} model.Response{data=model.OpenListServiceResponse}
+// @Success      200 {object} middleware.Response[model.OpenListServiceResponse]
 // @Router       /openlist/detail/{id} [get]
 func GetOpenListService(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -206,7 +207,7 @@ func GetOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        id path int true "服务ID"
 // @Param        body body OpenListServiceReq true "服务信息"
-// @Success      200 {object} model.Response
+// @Success      200 {object} middleware.Response[string]
 // @Router       /openlist/update/{id} [put]
 func UpdateOpenListService(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -243,12 +244,8 @@ func UpdateOpenListService(db *sql.DB) gin.HandlerFunc {
 			middleware.NotFound(c, "服务不存在")
 			return
 		}
-		serviceObj.Name = req.Name
-		serviceObj.Account = req.Account
-		serviceObj.Token = req.Token
-		serviceObj.ServiceUrl = req.ServiceUrl
-		serviceObj.BackupUrl = req.BackupUrl
-		serviceObj.Enabled = req.Enabled
+		enabledBool := util.ParseEnabled(req.Enabled)
+		serviceObj.Enabled = enabledBool
 		err = service.UpdateOpenListService(db, serviceObj)
 		if err != nil {
 			logger.Error("[API] /openlist/service/:id [PUT] 更新失败", zap.Error(err))
@@ -268,7 +265,7 @@ func UpdateOpenListService(db *sql.DB) gin.HandlerFunc {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        id path int true "服务ID"
-// @Success      200 {object} model.Response
+// @Success      200 {object} middleware.Response[string]
 // @Router       /openlist/delete/{id} [delete]
 func DeleteOpenListService(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

@@ -15,14 +15,17 @@ import (
 
 // 删除本地 extractUserIDFromClaims 实现，全部调用 util.ExtractUserIDFromClaims
 
+
+
 type StrmConfigReq struct {
-	Name             string `json:"name" binding:"required"`
-	AlistBasePath    string `json:"alistBasePath" binding:"required"`
-	StrmOutputPath   string `json:"strmOutputPath" binding:"required"`
-	DownloadEnabled  bool   `json:"downloadEnabled"`
-	DownloadInterval int    `json:"downloadInterval"`
-	UpdateMode       string `json:"updateMode" binding:"required"`
-	ServiceID        int    `json:"serviceId" binding:"required"`
+	Name             string      `json:"name" binding:"required"`
+	AlistBasePath    string      `json:"alistBasePath" binding:"required"`
+	StrmOutputPath   string      `json:"strmOutputPath" binding:"required"`
+	DownloadEnabled  model.DownloadEnabled `json:"downloadEnabled" binding:"required"`
+	DownloadInterval int         `json:"downloadInterval" binding:"required"`
+	UpdateMode       model.UpdateMode  `json:"updateMode" binding:"required"`
+	ServiceID        int         `json:"serviceId" binding:"required"`
+	IsUseBackupUrl   model.IsUseBackupUrl `json:"isUseBackupUrl" binding:"required"`
 }
 
 type StrmConfigCopyReq struct {
@@ -39,7 +42,7 @@ type StrmConfigCopyReq struct {
 // @Param        serviceId query int false "服务ID"
 // @Param        page query int false "页码(默认1)"
 // @Param        pageSize query int false "每页条数(默认10)"
-// @Success      200 {object} model.Response{data=model.StrmConfigPageResult}
+// @Success      200 {object} middleware.Response[model.PageResult[model.StrmConfigResponse]]
 // @Router       /strm/config/list [get]
 func ListStrmConfig(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -65,17 +68,17 @@ func ListStrmConfig(db *sql.DB) gin.HandlerFunc {
 					Name: v.Name,
 					AlistBasePath: v.AlistBasePath,
 					StrmOutputPath: v.StrmOutputPath,
-					DownloadEnabled: v.DownloadEnabled,
+					DownloadEnabled: model.DownloadEnabled(strconv.Itoa(util.Bool2Int(v.DownloadEnabled))),
 					DownloadInterval: v.DownloadInterval,
 					UpdateMode: string(v.UpdateMode),
 					ServiceID: v.ServiceID,
-					IsUseBackupUrl: v.IsUseBackupUrl,
+					IsUseBackupUrl: model.IsUseBackupUrl(strconv.Itoa(util.Bool2Int(v.IsUseBackupUrl))),
 					CreatedAt: v.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 					UpdatedAt: v.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 				}
 			}
 		}
-		result := model.StrmConfigPageResult{
+		result := model.PageResult[model.StrmConfigResponse]{
 			List: list,
 			Total: total,
 			Page: page,
@@ -93,7 +96,7 @@ func ListStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Produce json
 // @Param Authorization header string true "Bearer {{accessToken}}"
 // @Param body body StrmConfigCopyReq true "要复制的id列表"
-// @Success 200 {object} model.Response{data=string} // data为操作结果描述
+// @Success 200 {object} middleware.Response[string] // data为操作结果描述
 // @Router /strm/config/copy [post]
 func CopyStrmConfig(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -119,7 +122,7 @@ func CopyStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        body body StrmConfigReq true "配置内容"
-// @Success      200 {object} model.Response
+// @Success      200 {object} middleware.Response[string]
 // @Router       /strm/config/add [post]
 func CreateStrmConfig(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -138,15 +141,18 @@ func CreateStrmConfig(db *sql.DB) gin.HandlerFunc {
 		}
 		userID := util.ExtractUserIDFromClaims(claims)
 		logger.Info("[API] /strm/config 新增 claims和userID", zap.Any("claims", claims), zap.Int("userID", userID))
+		downloadEnabledBool := util.ParseEnabled(req.DownloadEnabled)
+		isUseBackupUrlBool := util.ParseEnabled(req.IsUseBackupUrl)
 		cfg := &model.StrmConfig{
 			UserID: userID,
 			Name: req.Name,
 			AlistBasePath: req.AlistBasePath,
 			StrmOutputPath: req.StrmOutputPath,
-			DownloadEnabled: req.DownloadEnabled,
+			DownloadEnabled: downloadEnabledBool,
 			DownloadInterval: req.DownloadInterval,
 			UpdateMode: model.UpdateMode(req.UpdateMode),
 			ServiceID: req.ServiceID,
+			IsUseBackupUrl: isUseBackupUrlBool,
 		}
 		err := service.CreateStrmConfig(db, cfg)
 		if err != nil {
@@ -168,7 +174,7 @@ func CreateStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        id path int true "配置ID"
 // @Param        body body StrmConfigReq true "配置内容"
-// @Success      200 {object} model.Response
+// @Success      200 {object} middleware.Response[string]
 // @Router       /strm/config/update/{id} [put]
 func UpdateStrmConfig(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -189,13 +195,16 @@ func UpdateStrmConfig(db *sql.DB) gin.HandlerFunc {
 			middleware.NotFound(c, "配置不存在")
 			return
 		}
+		downloadEnabledBool := util.ParseEnabled(req.DownloadEnabled)
+		isUseBackupUrlBool := util.ParseEnabled(req.IsUseBackupUrl)
 		cfg.Name = req.Name
 		cfg.AlistBasePath = req.AlistBasePath
 		cfg.StrmOutputPath = req.StrmOutputPath
-		cfg.DownloadEnabled = req.DownloadEnabled
+		cfg.DownloadEnabled = downloadEnabledBool
 		cfg.DownloadInterval = req.DownloadInterval
 		cfg.UpdateMode = model.UpdateMode(req.UpdateMode)
 		cfg.ServiceID = req.ServiceID
+		cfg.IsUseBackupUrl = isUseBackupUrlBool
 		err = service.UpdateStrmConfig(db, cfg)
 		if err != nil {
 			middleware.InternalServerError(c, "编辑失败")
@@ -213,7 +222,7 @@ func UpdateStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        id path int true "配置ID"
-// @Success      200 {object} model.Response
+// @Success      200 {object} middleware.Response[string]
 // @Router       /strm/config/delete/{id} [delete]
 func DeleteStrmConfig(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -246,7 +255,7 @@ func DeleteStrmConfig(db *sql.DB) gin.HandlerFunc {
 // @Produce      json
 // @Param        Authorization header string true "Bearer {accessToken}"
 // @Param        id path int true "配置ID"
-// @Success      200 {object} model.Response{data=model.StrmConfigResponse}
+// @Success      200 {object} middleware.Response[model.StrmConfigResponse]
 // @Router       /strm/config/detail/{id} [get]
 func GetStrmConfig(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -267,11 +276,11 @@ func GetStrmConfig(db *sql.DB) gin.HandlerFunc {
 			Name: cfg.Name,
 			AlistBasePath: cfg.AlistBasePath,
 			StrmOutputPath: cfg.StrmOutputPath,
-			DownloadEnabled: cfg.DownloadEnabled,
+			DownloadEnabled: model.DownloadEnabled(strconv.Itoa(util.Bool2Int(cfg.DownloadEnabled))),
 			DownloadInterval: cfg.DownloadInterval,
 			UpdateMode: string(cfg.UpdateMode),
 			ServiceID: cfg.ServiceID,
-			IsUseBackupUrl: cfg.IsUseBackupUrl,
+			IsUseBackupUrl: model.IsUseBackupUrl(strconv.Itoa(util.Bool2Int(cfg.IsUseBackupUrl))),
 			CreatedAt: cfg.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 			UpdatedAt: cfg.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}

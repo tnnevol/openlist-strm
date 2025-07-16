@@ -127,3 +127,30 @@ func ExtractUserIDFromClaims(claims interface{}) int {
 	}
 	return 0
 }
+
+// parseEnabled 将字符串/数字/布尔值的 0/1 转为 bool
+func ParseEnabled(val interface{}) bool {
+    switch v := val.(type) {
+    case string:
+        return v == "1"
+    case float64:
+        return int(v) == 1
+    case int:
+        return v == 1
+    case bool:
+        return v
+    default:
+        return false
+    }
+}
+
+func Bool2Int(val bool) int {
+	var i int
+	if val {
+		i = 1
+	} else {
+		i = 0
+	}
+	return i
+}
+

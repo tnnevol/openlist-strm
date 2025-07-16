@@ -2,11 +2,23 @@ package model
 
 // Response 统一响应结构
 // swagger:model
-type Response struct {
+type Response[T any] struct {
 	Code    int         `json:"code" example:"200"`
 	Message string      `json:"message" example:"success"`
 	// data 可为任意类型，如 PageResult、StrmConfig、OpenListServiceResponse 等
-	Data    interface{} `json:"data,omitempty"` // 泛型，具体类型见各接口注释
+	Data    T `json:"data,omitempty"` // 泛型，具体类型见各接口注释
+}
+
+
+// PageResult 通用分页响应结构
+// swagger:model
+// 用于所有分页接口的响应
+// list: 当前页数据，total: 总条数，page: 当前页码，pageSize: 每页条数
+type PageResult[T any] struct {
+	List     []T `json:"list"` // 当前页数据
+	Total    int         `json:"total" example:"100"` // 总条数
+	Page     int         `json:"page" example:"1"` // 当前页码
+	PageSize int         `json:"pageSize" example:"10"` // 每页条数
 }
 
 // UserInfoResponse 用户信息接口响应结构
@@ -19,47 +31,47 @@ type UserInfoResponse struct {
 	Email    string   `json:"email" example:"user@example.com"`
 }
 
-// PageResult 通用分页响应结构
-// swagger:model
-// 用于所有分页接口的响应
-// list: 当前页数据，total: 总条数，page: 当前页码，pageSize: 每页条数
-// 泛型 T 仅作注释，实际用 interface{}
-type PageResult struct {
-	List     interface{} `json:"list"` // 当前页数据
-	Total    int         `json:"total" example:"100"` // 总条数
-	Page     int         `json:"page" example:"1"` // 当前页码
-	PageSize int         `json:"pageSize" example:"10"` // 每页条数
-}
+type DownloadEnabled string
 
-// OpenListServicePageResult OpenListService 分页响应
-// swagger:model
-// 用于 OpenListService 分页接口
-// list: OpenListServiceResponse 数组
-// total/page/pageSize 同 PageResult
-//
-type OpenListServicePageResult struct {
-	List     []OpenListServiceResponse `json:"list"`
-	Total    int                      `json:"total" example:"100"`
-	Page     int                      `json:"page" example:"1"`
-	PageSize int                      `json:"pageSize" example:"10"`
-}
+const (
+	DownloadEnabledTrue DownloadEnabled = "1"
+	DownloadEnabledFalse DownloadEnabled = "0"
+)
 
-// StrmConfigPageResult StrmConfig 分页响应
+type IsUseBackupUrl string
+
+const (
+	IsUseBackupUrlTrue IsUseBackupUrl = "1"
+	IsUseBackupUrlFalse IsUseBackupUrl = "0"
+)
+
+// 新增用于接口返回的小驼峰结构体
 // swagger:model
-// 用于 StrmConfig 分页接口
-// list: StrmConfig 数组
-// total/page/pageSize 同 PageResult
 //
-type StrmConfigPageResult struct {
-	List     []StrmConfigResponse `json:"list"`
-	Total    int          `json:"total" example:"100"`
-	Page     int          `json:"page" example:"1"`
-	PageSize int          `json:"pageSize" example:"10"`
-}
+type StrmConfigResponse struct {
+	ID               int       `json:"id"`
+	Name             string    `json:"name"`
+	AlistBasePath    string    `json:"alistBasePath"`
+	StrmOutputPath   string    `json:"strmOutputPath"`
+	DownloadEnabled  DownloadEnabled      `json:"downloadEnabled"`
+	DownloadInterval int       `json:"downloadInterval"`
+	UpdateMode       string    `json:"updateMode"`
+	ServiceID        int       `json:"serviceId"`
+	IsUseBackupUrl   IsUseBackupUrl      `json:"isUseBackupUrl"`
+	CreatedAt        string    `json:"createdAt"`
+	UpdatedAt        string    `json:"updatedAt"`
+} 
+
+
+type Enabled string
+
+const (
+	EnabledTrue Enabled = "1"
+	EnabledFalse Enabled = "0"
+)
 
 // OpenListServiceResponse 响应结构体，使用小驼峰格式，去除 CreatedAt 和 UserID 字段
 // swagger:model
-// 用于 OpenListServicePageResult 的 list 元素
 //
 type OpenListServiceResponse struct {
 	ID        int    `json:"id"`
@@ -68,6 +80,6 @@ type OpenListServiceResponse struct {
 	Token     string `json:"token"`
 	ServiceUrl string `json:"serviceUrl"`
 	BackupUrl  string `json:"backupUrl"`
-	Enabled    bool   `json:"enabled"`
+	Enabled    Enabled   `json:"enabled"`
 	UpdatedAt  string `json:"updatedAt"`
 }
