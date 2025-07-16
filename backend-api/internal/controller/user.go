@@ -671,3 +671,16 @@ func UserInfo(db *sql.DB) gin.HandlerFunc {
 		c.JSON(200, resp)
 	}
 }
+
+// RegisterUserRoutes 统一注册所有/user相关接口
+func RegisterUserRoutes(rg *gin.RouterGroup, db *sql.DB) {
+	rg.POST("/send-code", SendCode(db))
+	rg.POST("/register", Register(db))
+	rg.POST("/login", Login(db))
+	rg.POST("/logout", Logout(db))
+	rg.GET("/token-blacklist-status", TokenBlacklistStatus(db))
+	rg.POST("/generate-expired-token", GenerateExpiredToken(db))
+	rg.POST("/forgot-password/send-code", ForgotPasswordSendCode(db))
+	rg.POST("/forgot-password/reset", ForgotPasswordReset(db))
+	rg.GET("/info", UserInfo(db))
+}

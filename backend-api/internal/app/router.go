@@ -19,15 +19,16 @@ func RegisterRouter(db *sql.DB) *gin.Engine {
 	r.Use(middleware.AuthMiddleware())
 
 	userGroup := r.Group("/user")
-	userGroup.POST("/send-code", controller.SendCode(db))
-	userGroup.POST("/register", controller.Register(db))
-	userGroup.POST("/login", controller.Login(db))
-	userGroup.POST("/logout", controller.Logout(db))
-	userGroup.GET("/token-blacklist-status", controller.TokenBlacklistStatus(db))
-	userGroup.POST("/generate-expired-token", controller.GenerateExpiredToken(db))
-	userGroup.POST("/forgot-password/send-code", controller.ForgotPasswordSendCode(db))
-	userGroup.POST("/forgot-password/reset", controller.ForgotPasswordReset(db))
-	userGroup.GET("/info", controller.UserInfo(db))
+	controller.RegisterUserRoutes(userGroup, db)
+
+	openlistGroup := r.Group("/openlist")
+	controller.RegisterOpenListServiceRoutes(openlistGroup, db)
+
+	strmGroup := r.Group("/strm")
+	controller.RegisterStrmConfigRoutes(strmGroup, db)
+
+	dictGroup := r.Group("/dict")
+	controller.RegisterDictRoutes(dictGroup, db)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	return r

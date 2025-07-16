@@ -107,6 +107,22 @@ func InsertTestUser(t *testing.T, db *sql.DB, username, email, passwordHash stri
 	return userID
 }
 
+// InsertTestUserWithID 插入指定ID的测试用户数据
+func InsertTestUserWithID(t *testing.T, db *sql.DB, userID int, username, email, passwordHash string, isActive bool) {
+	query := `
+	INSERT INTO user (id, username, email, password_hash, is_active, created_at, token_invalid_before)
+	VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+	`
+	
+	// 设置token_invalid_before为当前时间之前，这样新生成的token不会被拒绝
+	tokenInvalidBefore := time.Now().Add(-1 * time.Hour) // 1小时前
+	
+	_, err := db.Exec(query, userID, username, email, passwordHash, isActive, tokenInvalidBefore)
+	if err != nil {
+		t.Fatalf("Failed to insert test user with ID %d: %v", userID, err)
+	}
+}
+
 // InsertTestUserFromConfig 从配置插入测试用户
 func InsertTestUserFromConfig(t *testing.T, db *sql.DB, testUser config.TestUser) int64 {
 	// 对密码进行哈希处理

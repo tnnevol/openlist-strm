@@ -11,7 +11,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/tnnevol/openlist-strm/backend-api/internal/logger"
 	"github.com/tnnevol/openlist-strm/backend-api/internal/service"
+	"go.uber.org/zap"
 )
 
 // 统一错误码定义
@@ -48,14 +50,14 @@ func AuthMiddleware() gin.HandlerFunc {
 		// 检查是否在白名单中（精确匹配）
 		if WhiteList[path] {
 			// 新增日志
-			println("[AuthMiddleware] 路径", path, "在白名单，直接放行")
+			logger.Info("[AuthMiddleware] 路径在白名单，直接放行", zap.String("path", path))
 			c.Next()
 			return
 		}
 
 		// 检查swagger路径（前缀匹配）
 		if strings.HasPrefix(path, "/swagger/") {
-			println("[AuthMiddleware] swagger路径放行")
+			logger.Info("[AuthMiddleware] swagger路径放行", zap.String("path", path))
 			c.Next()
 			return
 		}
@@ -63,7 +65,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// 解析token
 		tokenStr := c.GetHeader("Authorization")
 		if tokenStr == "" {
-			println("[AuthMiddleware] 未获取到token，拒绝")
+			logger.Info("[AuthMiddleware] 未获取到token，拒绝", zap.String("path", path))
 			Unauthorized(c, "未登录或token缺失")
 			c.Abort()
 			return
@@ -73,7 +75,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// 检查token是否在黑名单中
 		blacklist := service.GetTokenBlacklist()
 		if blacklist.IsBlacklisted(tokenStr) {
-			println("[AuthMiddleware] token在黑名单，拒绝")
+			logger.Info("[AuthMiddleware] token在黑名单，拒绝", zap.String("path", path))
 			Unauthorized(c, "token已失效，请重新登录")
 			c.Abort()
 			return
@@ -90,37 +92,37 @@ func AuthMiddleware() gin.HandlerFunc {
 		if err != nil || !token.Valid {
 			// 自动区分token过期和其他无效
 			if errors.Is(err, jwt.ErrTokenExpired) {
-				println("[AuthMiddleware] token已过期（解析时），返回过期状态")
+				logger.Info("[AuthMiddleware] token已过期（解析时），返回过期状态", zap.String("path", path))
 				TokenExpired(c, "token已过期")
 				c.Abort()
 				return
 			}
 			// 兼容其他过期错误类型
 			if err != nil && (strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "过期")) {
-				println("[AuthMiddleware] token已过期（其他错误类型），返回过期状态")
+				logger.Info("[AuthMiddleware] token已过期（其他错误类型），返回过期状态", zap.String("path", path))
 				TokenExpired(c, "token已过期")
 				c.Abort()
 				return
 			}
-			println("[AuthMiddleware] token解析失败或无效，拒绝", err, "类型:", fmt.Sprintf("%T", err))
+			logger.Info("[AuthMiddleware] token解析失败或无效，拒绝", zap.String("path", path), zap.Error(err), zap.String("errType", fmt.Sprintf("%T", err)))
 			Unauthorized(c, "token无效")
 			c.Abort()
 			return
 		}
 
 		// 添加token解析成功的详细日志
-		println("[AuthMiddleware] token解析成功，claims:", fmt.Sprintf("%+v", claims))
+		logger.Info("[AuthMiddleware] token解析成功", zap.String("path", path), zap.Any("claims", claims))
 		if exp, ok := claims["exp"].(float64); ok {
-			println("[AuthMiddleware] token exp字段:", int64(exp), "当前时间:", time.Now().Unix())
+			logger.Info("[AuthMiddleware] token exp字段", zap.Int64("exp", int64(exp)), zap.Int64("now", time.Now().Unix()))
 		}
 		if iat, ok := claims["iat"].(float64); ok {
-			println("[AuthMiddleware] token iat字段:", int64(iat))
+			logger.Info("[AuthMiddleware] token iat字段", zap.Int64("iat", int64(iat)))
 		}
 
 		// 检查token是否已过期
 		if exp, ok := claims["exp"].(float64); ok {
 			if time.Now().Unix() > int64(exp) {
-				println("[AuthMiddleware] token已过期，返回过期状态")
+				logger.Info("[AuthMiddleware] token已过期，返回过期状态", zap.String("path", path))
 				TokenExpired(c, "token已过期")
 				c.Abort()
 				return
@@ -146,7 +148,7 @@ func AuthMiddleware() gin.HandlerFunc {
 				if err == nil {
 					user, err := service.GetUserByUsername(db, username)
 					if err != nil {
-						println("[AuthMiddleware] 查找用户失败，拒绝")
+						logger.Info("[AuthMiddleware] 查找用户失败，拒绝", zap.String("path", path), zap.Error(err))
 						Unauthorized(c, "token无效，请重新登录")
 						c.Abort()
 						return
@@ -162,26 +164,26 @@ func AuthMiddleware() gin.HandlerFunc {
 						tokenInvalidBeforeStr = "nil"
 						validStr = "false"
 					}
-					println("[AuthMiddleware] 校验token_invalid_before username=", username, "iat=", int64(iat), "token_invalid_before=", tokenInvalidBeforeStr, "valid=", validStr, "查找err=", err)
+					logger.Info("[AuthMiddleware] 校验token_invalid_before username=", zap.String("username", username), zap.Int64("iat", int64(iat)), zap.String("token_invalid_before", tokenInvalidBeforeStr), zap.String("valid", validStr), zap.Error(err))
 					
 					if user == nil {
-						println("[AuthMiddleware] 用户对象为空，拒绝")
+						logger.Info("[AuthMiddleware] 用户对象为空，拒绝", zap.String("path", path))
 						Unauthorized(c, "token无效，请重新登录")
 						c.Abort()
 						return
 					}
 					
 					if !user.TokenInvalidBefore.Valid {
-						println("[AuthMiddleware] token_invalid_before无效，拒绝")
-						TokenExpired(c, "token已过期")
-						c.Abort()
+						// token_invalid_before 无效，说明没有强制失效要求，直接通过
+						c.Set("claims", claims)
+						c.Next()
 						return
 					}
 					if int64(iat) < user.TokenInvalidBefore.Time.Unix() {
-						println("[AuthMiddleware] token签发时间早于token_invalid_before，拒绝")
-						println("[AuthMiddleware] 准备返回TokenExpired，code=40101")
+						logger.Info("[AuthMiddleware] token签发时间早于token_invalid_before，拒绝", zap.String("path", path))
+						logger.Info("[AuthMiddleware] 准备返回TokenExpired，code=40101")
 						TokenExpired(c, "token已过期")
-						println("[AuthMiddleware] TokenExpired已调用")
+						logger.Info("[AuthMiddleware] TokenExpired已调用")
 						c.Abort()
 						return
 					}

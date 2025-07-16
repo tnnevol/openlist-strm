@@ -1,11 +1,14 @@
 package util
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/thanhpk/randstr"
 )
 
@@ -53,4 +56,74 @@ func GenerateVerificationCode() string {
 	code := strings.ToUpper(randstr.String(6))
 	log.Println("[验证码生成] code:", code)
 	return code
+}
+
+// GetPageParams 获取分页参数，默认 page=1, pageSize=10
+func GetPageParams(c *gin.Context) (int, int) {
+	page := 1
+	pageSize := 10
+	if p := c.Query("page"); p != "" {
+		fmt.Sscanf(p, "%d", &page)
+		if page < 1 {
+			page = 1
+		}
+	}
+	if ps := c.Query("pageSize"); ps != "" {
+		fmt.Sscanf(ps, "%d", &pageSize)
+		if pageSize < 1 {
+			pageSize = 10
+		}
+	}
+	return page, pageSize
+}
+
+// Paginate 对任意 slice 做分页，返回当前页数据和总数
+func Paginate[T any](list []T, page, pageSize int) ([]T, int) {
+	total := len(list)
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	if page <= 0 {
+		page = 1
+	}
+	start := (page - 1) * pageSize
+	if start >= total {
+		return []T{}, total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+	return list[start:end], total
+}
+
+// 从claims中提取user_id，兼容多种类型
+func ExtractUserIDFromClaims(claims interface{}) int {
+	if claims == nil {
+		return 0
+	}
+	var m map[string]interface{}
+	switch v := claims.(type) {
+	case map[string]interface{}:
+		m = v
+	case gin.H:
+		m = v
+	case jwt.MapClaims:
+		m = v
+	default:
+		if mv, ok := v.(map[string]interface{}); ok {
+			m = mv
+		}
+	}
+	if m != nil {
+		if v, ok := m["user_id"]; ok {
+			switch vv := v.(type) {
+			case float64:
+				return int(vv)
+			case int:
+				return vv
+			}
+		}
+	}
+	return 0
 }

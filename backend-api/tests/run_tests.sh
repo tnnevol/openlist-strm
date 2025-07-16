@@ -162,12 +162,21 @@ show_help() {
     echo "  $0 coverage                # 生成覆盖率报告"
 }
 
+# 查询 openlist_service 表记录数
+count_openlist_service() {
+    sqlite3 db/OpenListStrm.db "SELECT COUNT(*) FROM openlist_service;" 2>/dev/null || echo "0"
+}
+
 # 主函数
 main() {
     # 检查是否在正确的目录
     if [ ! -f "go.mod" ]; then
-        log_error "请在项目根目录运行此脚本"
-        exit 1
+        if [ -f "../go.mod" ]; then
+            cd ..
+        else
+            log_error "请在项目根目录或 tests 目录运行此脚本"
+            exit 1
+        fi
     fi
     
     # 检查Go版本
