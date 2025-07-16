@@ -80,7 +80,7 @@ func ListStrmConfig(db *gorm.DB) gin.HandlerFunc {
 		}
 		result := model.PageResult[model.StrmConfigResponse]{
 			List: list,
-			Total: total,
+			Total: int(total),
 			Page: page,
 			PageSize: pageSize,
 		}

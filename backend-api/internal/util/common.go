@@ -77,26 +77,6 @@ func GetPageParams(c *gin.Context) (int, int) {
 	return page, pageSize
 }
 
-// Paginate 对任意 slice 做分页，返回当前页数据和总数
-func Paginate[T any](list []T, page, pageSize int) ([]T, int) {
-	total := len(list)
-	if pageSize <= 0 {
-		pageSize = 10
-	}
-	if page <= 0 {
-		page = 1
-	}
-	start := (page - 1) * pageSize
-	if start >= total {
-		return []T{}, total
-	}
-	end := start + pageSize
-	if end > total {
-		end = total
-	}
-	return list[start:end], total
-}
-
 // 从claims中提取user_id，兼容多种类型
 func ExtractUserIDFromClaims(claims interface{}) int {
 	if claims == nil {

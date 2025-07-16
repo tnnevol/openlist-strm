@@ -50,20 +50,42 @@ func GetStrmConfigByID(db *gorm.DB, id int) (*StrmConfig, error) {
 	return &config, nil
 }
 
-func GetStrmConfigsByServiceID(db *gorm.DB, serviceID int) ([]*StrmConfig, error) {
+// 分页获取指定 serviceID 的 StrmConfig，返回数据和总数
+func GetStrmConfigsByServiceID(db *gorm.DB, serviceID, userID, page, pageSize int) ([]*StrmConfig, int64, error) {
 	var configs []*StrmConfig
-	if err := db.Where("service_id = ?", serviceID).Order("created_at DESC").Find(&configs).Error; err != nil {
-		return nil, err
+	var total int64
+	db = db.Model(&StrmConfig{}).Where("service_id = ? AND user_id = ?", serviceID, userID)
+	db.Count(&total)
+	if page <= 0 {
+		page = 1
 	}
-	return configs, nil
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	offset := (page - 1) * pageSize
+	if err := db.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&configs).Error; err != nil {
+		return nil, 0, err
+	}
+	return configs, total, nil
 }
 
-func GetAllStrmConfigs(db *gorm.DB) ([]*StrmConfig, error) {
+// 分页获取所有 StrmConfig，返回数据和总数
+func GetAllStrmConfigs(db *gorm.DB, userID, page, pageSize int) ([]*StrmConfig, int64, error) {
 	var configs []*StrmConfig
-	if err := db.Order("created_at DESC").Find(&configs).Error; err != nil {
-		return nil, err
+	var total int64
+	db = db.Model(&StrmConfig{}).Where("user_id = ?", userID)
+	db.Count(&total)
+	if page <= 0 {
+		page = 1
 	}
-	return configs, nil
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	offset := (page - 1) * pageSize
+	if err := db.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&configs).Error; err != nil {
+		return nil, 0, err
+	}
+	return configs, total, nil
 }
 
 func UpdateStrmConfig(db *gorm.DB, config *StrmConfig) error {

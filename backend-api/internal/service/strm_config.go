@@ -4,30 +4,14 @@ import (
 	"time"
 
 	"github.com/tnnevol/openlist-strm/backend-api/internal/model"
-	"github.com/tnnevol/openlist-strm/backend-api/internal/util"
 	"gorm.io/gorm"
 )
 
-func ListStrmConfigs(db *gorm.DB, userID, serviceID, page, pageSize int) ([]*model.StrmConfig, int, error) {
-	var configs []*model.StrmConfig
-	var err error
+func ListStrmConfigs(db *gorm.DB, userID, serviceID, page, pageSize int) ([]*model.StrmConfig, int64, error) {
 	if serviceID > 0 {
-		configs, err = model.GetStrmConfigsByServiceID(db, serviceID)
-	} else {
-		configs, err = model.GetAllStrmConfigs(db)
+		return model.GetStrmConfigsByServiceID(db, serviceID, userID, page, pageSize)
 	}
-	if err != nil {
-		return nil, 0, err
-	}
-	// 只保留当前用户的数据
-	var filtered []*model.StrmConfig
-	for _, cfg := range configs {
-		if cfg != nil && cfg.UserID == userID {
-			filtered = append(filtered, cfg)
-		}
-	}
-	paged, total := util.Paginate(filtered, page, pageSize)
-	return paged, total, nil
+	return model.GetAllStrmConfigs(db, userID, page, pageSize)
 }
 
 func CopyStrmConfigs(db *gorm.DB, ids []int) error {

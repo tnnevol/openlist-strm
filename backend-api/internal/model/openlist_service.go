@@ -43,13 +43,23 @@ func GetOpenListServiceByID(db *gorm.DB, id int) (*OpenListService, error) {
 	return &service, nil
 }
 
-// GetOpenListServicesByUserID 根据用户ID获取所有OpenList服务
-func GetOpenListServicesByUserID(db *gorm.DB, userID int) ([]*OpenListService, error) {
+// GetOpenListServicesByUserID 根据用户ID分页获取OpenList服务，返回数据和总数
+func GetOpenListServicesByUserID(db *gorm.DB, userID, page, pageSize int) ([]*OpenListService, int64, error) {
 	var services []*OpenListService
-	if err := db.Where("user_id = ?", userID).Order("created_at DESC").Find(&services).Error; err != nil {
-		return nil, err
+	var total int64
+	db = db.Model(&OpenListService{}).Where("user_id = ?", userID)
+	db.Count(&total)
+	if page <= 0 {
+		page = 1
 	}
-	return services, nil
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	offset := (page - 1) * pageSize
+	if err := db.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&services).Error; err != nil {
+		return nil, 0, err
+	}
+	return services, total, nil
 }
 
 // UpdateOpenListService 更新OpenList服务

@@ -9,8 +9,8 @@ func CreateOpenListService(db *gorm.DB, service *model.OpenListService) error {
 	return model.CreateOpenListService(db, service)
 }
 
-func GetOpenListServicesByUserID(db *gorm.DB, userID int) ([]*model.OpenListService, error) {
-	return model.GetOpenListServicesByUserID(db, userID)
+func GetOpenListServicesByUserID(db *gorm.DB, userID, page, pageSize int) ([]*model.OpenListService, int64, error) {
+	return model.GetOpenListServicesByUserID(db, userID, page, pageSize)
 }
 
 func GetOpenListServiceByID(db *gorm.DB, id int) (*model.OpenListService, error) {

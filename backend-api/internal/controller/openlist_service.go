@@ -71,7 +71,8 @@ func ListOpenListService(db *gorm.DB) gin.HandlerFunc {
 			middleware.Unauthorized(c, "用户信息无效")
 			return
 		}
-		services, err := service.GetOpenListServicesByUserID(db, userID)
+		page, pageSize := util.GetPageParams(c)
+		services, total, err := service.GetOpenListServicesByUserID(db, userID, page, pageSize)
 		if err != nil {
 			logger.Error("[API] /openlist/service [GET] 查询失败", zap.Error(err))
 			middleware.InternalServerError(c, "查询失败")
@@ -80,21 +81,18 @@ func ListOpenListService(db *gorm.DB) gin.HandlerFunc {
 		if services == nil {
 			services = []*model.OpenListService{}
 		}
-		// 转换为响应格式
 		responses := convertToResponseList(services)
-		// 分页参数
-		page, pageSize := util.GetPageParams(c)
-		pagedPtr, total := util.Paginate(responses, page, pageSize)
-		paged := make([]model.OpenListServiceResponse, len(pagedPtr))
-		for i, v := range pagedPtr {
+		// 修正类型转换，确保为 []model.OpenListServiceResponse
+		respList := make([]model.OpenListServiceResponse, len(responses))
+		for i, v := range responses {
 			if v != nil {
-				paged[i] = *v
+				respList[i] = *v
 			}
 		}
 		logger.Info("[API] /openlist/service [GET] 查询成功", zap.Int("user_id", userID), zap.Int("count", len(services)), zap.Int("page", page), zap.Int("pageSize", pageSize))
 		result := model.PageResult[model.OpenListServiceResponse]{
-			List: paged,
-			Total: total,
+			List: respList,
+			Total: int(total),
 			Page: page,
 			PageSize: pageSize,
 		}
