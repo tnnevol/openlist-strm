@@ -144,7 +144,7 @@ func Register(db *gorm.DB) gin.HandlerFunc {
 			if err == gorm.ErrRecordNotFound {
 				middleware.BadRequest(c, "验证码无效或已过期")
 			} else {
-				middleware.InternalServerError(c, "注册失败")
+				middleware.InternalServerError(c, "注册失败: " + err.Error())
 			}
 			return
 		}
